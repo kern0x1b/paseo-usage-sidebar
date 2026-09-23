@@ -1,99 +1,90 @@
-# Paseo Usage Sidebar 📊
+# Paseo Usage Sidebar — multi-account fork
 
-<p align="center">
-  <strong>A sleek and lightweight usage dashboard plugin for Paseo's sidebar.</strong>
-</p>
+A fork of [RUIIIOVO/paseo-usage-sidebar](https://github.com/RUIIIOVO/paseo-usage-sidebar) for people
+who run more than one Claude account in [Paseo](https://paseo.sh).
 
-<p align="center">
-  <a href="./README.md">English</a> | <a href="./README.zh-CN.md">简体中文</a>
-</p>
+Paseo reports plan usage for one Claude login only: `~/.claude`, or the default Keychain item. A
+custom provider that `extends: "claude"` with its own `CLAUDE_CONFIG_DIR` gets no usage at all,
+neither in **Settings → Usage** nor in the composer's context tooltip. This fork reads those
+accounts itself and shows them everywhere the plugin draws.
 
----
+![Two Claude accounts in the sidebar meter and in the composer](images/fork-overview.png)
 
-## 💡 Overview
+## What the fork adds
 
-**Paseo Usage Sidebar** is an elegant usage monitoring plugin designed for [Paseo](https://paseo.sh). It seamlessly integrates AI provider quotas and consumption tracking directly into your sidebar, featuring pinned mini progress bars and an expandable detailed panel to keep your usage visible at a glance.
+### Extra Claude accounts
 
-**Zero configuration required**—it reads Paseo's own `provider.usage.list`, so the numbers always agree with **Settings → Usage**. No API keys, no vendor CLI, no second polling path.
+Every enabled provider in `~/.paseo/config.json` that extends `claude` and sets its own
+`CLAUDE_CONFIG_DIR` becomes a usage card of its own, placed right after the default Claude card.
 
-<p align="center">
-  <img src="images/sidebar-meter-dark.png" alt="The pinned mini meter in the sidebar" />
-</p>
-
----
-
-## ✨ Features
-
-- 📊 **Pinned Mini Meters**: Compact progress bars embedded right below the sidebar item for effortless quota monitoring without page switching. *(Desktop and web only; the panel works everywhere.)*
-- 🔍 **Expandable Detail Panel**: One-click access to a dashboard showing provider quotas, reset schedules, balances, and status.
-- ⚡ **Zero Setup & Live Sync**: Refreshes every 60 seconds, and on demand from **Refresh**—no manual API key entry or configuration.
-- 🎛️ **Pin, Hide & Reorder**: Choose exactly which quota windows live in the sidebar, and drag them into the order you want.
-- 🎨 **Native Look & Feel**: Follows all seven built-in themes, picking up a theme switch without a reload.
-- 🌐 **i18n Ready**: Localized into all nine languages Paseo ships—English, Simplified Chinese, Arabic, Spanish, French, Japanese, Korean, Portuguese (Brazil), and Russian.
-
----
-
-## 📸 Preview
-
-|           |                  Pinned Mini Meter                  |             Expandable Detail Panel             |
-| :-------: | :-------------------------------------------------: | :---------------------------------------------: |
-| **Light** |   ![Mini meter, Light theme](images/sidebar-meter.png)    |    ![The usage panel](images/usage-panel.png)     |
-| **Dark**  | ![Mini meter, Dark theme](images/sidebar-meter-dark.png) | ![The panel on the Dark theme](images/usage-panel-dark.png) |
-
----
-
-## 🚀 Quick Start
-
-> Requires **Paseo 0.8.0 or later**. Paseo 0.7 and earlier cannot load this plugin.
-
-### Installation
-
-**Option A — From the app**
-
-1. Open **Paseo** and go to **Settings → Plugins**.
-2. Turn on **Enable plugins**.
-3. Paste the repository URL into **Plugin source**:
-   ```
-   https://github.com/RUIIIOVO/paseo-usage-sidebar.git
-   ```
-4. Press **Install plugin**.
-
-![Installing from Settings → Plugins](images/install.png)
-
-A successful install looks like this:
-
-![The installed plugin row](images/installed.png)
-
-**Option B — From the command line**
-
-```bash
-paseo plugin add RUIIIOVO/paseo-usage-sidebar
+```json
+"agents": {
+  "providers": {
+    "claude-work": {
+      "extends": "claude",
+      "label": "Claude Work",
+      "env": { "CLAUDE_CONFIG_DIR": "/Users/you/.claude-work" },
+      "enabled": true
+    }
+  }
+}
 ```
 
-### Usage
+- The token comes from `<CLAUDE_CONFIG_DIR>/.credentials.json`. On macOS, if that file is missing,
+  it comes from the Keychain item `Claude Code-credentials-<first 8 hex of sha256(CLAUDE_CONFIG_DIR)>`,
+  the name Claude Code itself uses.
+- Credentials are only read, never refreshed; the Claude CLI owns refresh, same as in the daemon.
+  An expired token shows the account as unavailable until the CLI renews it.
+- Windows, ids and tones match the daemon's own Claude card, so pins work the same way.
+- Cached for 5 minutes, like the daemon's usage cache. `config.json` is re-read on every poll, so
+  a new provider shows up without a plugin reload.
+- A failing account becomes an error card; it never hides the daemon's providers.
 
-- **Quick Glance**: The sidebar shows a mini meter for every pinned quota window, directly under the **Plan usage** entry.
-- **Detailed View**: Pick **Plan usage** in the sidebar, or run **Open plan usage** from the Command Center (`Cmd`/`Ctrl` + `K`).
-- **Reorder & Customize**: Every window in the panel carries a **+ / −** button that pins it to, or hides it from, the sidebar. Drag rows in the **Sidebar order** block to change the order the meter paints.
+### Composer pill
 
----
+Paseo's context tooltip finds plan limits by the agent's provider id in the daemon's list, where an
+extra account never appears. So agents on an extra account get a pill above the input instead:
+`27% · 23%` means the 5-hour and weekly windows. Clicking it opens the account's full card. Agents
+on the default account keep the native tooltip and get no pill.
 
-## 🔄 Updating
+### Sidebar meter columns
 
-Update with:
+**Plan usage → Sidebar order → Columns: 1 · 2 · 3** lays each provider's pinned windows side by
+side. A provider never gets more columns than it has pinned windows.
+
+In column mode each window takes two lines: `5H 27%` with the time left (`3h 23m`, `1d 12h`), and
+the bar. Codes: `5H` is the 5-hour session, `1W` is weekly, `1W Fable` is a model-scoped weekly
+window, `1D` / `1M` are daily / monthly. The time turns red when the window is projected to run out
+before it resets. Hover a cell for the full label and the exact reset time. One column keeps the
+upstream look.
+
+## Install
+
+Requires Paseo 0.8.0 or later. If the upstream plugin is installed, remove it first, since both
+use the id `usage-sidebar`:
 
 ```bash
-paseo plugin update usage-sidebar
+paseo plugin remove usage-sidebar
+paseo plugin add https://github.com/kern0x1b/paseo-usage-sidebar.git
 ```
 
----
+Update with `paseo plugin update usage-sidebar`.
 
-## 🤝 Contributing
+## Everything else
 
-Issues and Pull Requests are welcome—see [CONTRIBUTING.md](./CONTRIBUTING.md) for what to run and how commits are written. If you find this plugin helpful, please consider giving it a ⭐️.
+Pinning, drag-to-reorder, themes and the nine UI languages are upstream features, unchanged here.
+See the [upstream README](https://github.com/RUIIIOVO/paseo-usage-sidebar#readme) for them.
 
----
+## Development
 
-## 📄 License
+```bash
+npm ci
+npm run typecheck
+npm test
+```
 
-This project is licensed under the [MIT License](./LICENSE).
+Commits follow Conventional Commits; see [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## License
+
+[MIT](./LICENSE), same as upstream.
