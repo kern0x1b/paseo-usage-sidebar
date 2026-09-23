@@ -234,7 +234,7 @@ export function startSidebarMeter(client: PluginClientContext): PluginCleanup {
   let messages: Messages = messagesFor(locale);
   let node: HTMLElement | null = null;
   let snapshot: UsageSnapshot | null = null;
-  let selection: Selection = { keys: [], configured: false };
+  let selection: Selection = { keys: [], configured: false, columns: 1 };
   let groups: MeterGroup[] = [];
   let stopped = false;
   let appearance: Appearance | null = null;
@@ -298,6 +298,12 @@ export function startSidebarMeter(client: PluginClientContext): PluginCleanup {
       provider.style.cssText = `color:${labelColor};font-size:10px;font-weight:600;letter-spacing:0.04em;opacity:0.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;`;
       section.append(provider);
 
+      // One column is the original stacked list; more put a provider's windows
+      // side by side, so the 5-hour and weekly rows share one line.
+      const grid = document.createElement("div");
+      grid.style.cssText = `display:grid;grid-template-columns:repeat(${selection.columns}, minmax(0, 1fr));column-gap:12px;row-gap:8px;`;
+      section.append(grid);
+
       for (const row of group.rows) {
         const item = document.createElement("div");
         item.style.cssText = "display:flex;flex-direction:column;gap:3px;";
@@ -343,7 +349,7 @@ export function startSidebarMeter(client: PluginClientContext): PluginCleanup {
           item.style.pointerEvents = "auto";
         }
 
-        section.append(item);
+        grid.append(item);
       }
 
       node.append(section);

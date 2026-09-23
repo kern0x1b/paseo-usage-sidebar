@@ -31,6 +31,7 @@ import { getLocale, subscribeLocale } from "../i18n/locale";
 import { publishSelection } from "../selection/store";
 import {
   defaultKeys,
+  METER_COLUMN_OPTIONS,
   pinnedRows,
   readSelection,
   reorderVisible,
@@ -157,6 +158,18 @@ function useStyles(theme: PluginTheme, compact: boolean, rtl: boolean) {
           textAlign,
         },
         orderSection: { marginBottom: SPACE[6] },
+        columnsControl: { flexDirection: row, alignItems: "center", gap: SPACE[2] },
+        columnsOptions: {
+          flexDirection: row,
+          borderRadius: 6,
+          borderWidth: 1,
+          borderColor: theme.colors.border,
+          overflow: "hidden",
+        },
+        columnsOption: { minWidth: 26, paddingVertical: 2, alignItems: "center" },
+        columnsOptionActive: { backgroundColor: theme.colors.surface2 },
+        columnsOptionLabel: { color: theme.colors.foregroundMuted, fontSize: FONT.sm },
+        columnsOptionLabelActive: { color: theme.colors.foreground },
 
         card: {
           backgroundColor: theme.colors.surface1,
@@ -887,6 +900,15 @@ export function UsageSurface({ theme, layout }: PluginSurfaceProps) {
     },
   });
 
+  const columns = selectionQuery.data?.columns ?? 1;
+  const saveColumns = useMutation({
+    mutationFn: (next: number) => persistSelection({ columns: next }),
+    onSuccess: (selection) => {
+      queryClient.setQueryData(["usage-sidebar", "selection"], selection);
+      publishSelection(selection);
+    },
+  });
+
   const commitOrder = (keys: string[]) => {
     setLocalOrder(keys);
     savePins.mutate(keys);
@@ -957,6 +979,28 @@ export function UsageSurface({ theme, layout }: PluginSurfaceProps) {
           <View style={styles.orderSection}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionHeaderTitle}>{messages.sidebarOrder}</Text>
+              <View style={styles.columnsControl}>
+                <Text style={styles.sectionHeaderTitle}>{messages.meterColumns}</Text>
+                <View style={styles.columnsOptions} accessibilityRole="radiogroup">
+                  {METER_COLUMN_OPTIONS.map((option) => {
+                    const active = option === (saveColumns.isPending ? saveColumns.variables : columns);
+                    return (
+                      <Pressable
+                        key={option}
+                        accessibilityRole="radio"
+                        accessibilityLabel={`${messages.meterColumns}: ${option}`}
+                        accessibilityState={{ checked: active }}
+                        onPress={() => saveColumns.mutate(option)}
+                        style={[styles.columnsOption, active ? styles.columnsOptionActive : null]}
+                      >
+                        <Text style={[styles.columnsOptionLabel, active ? styles.columnsOptionLabelActive : null]}>
+                          {option}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
             </View>
             <OrderBlock
               rows={pinned}
@@ -969,7 +1013,9 @@ export function UsageSurface({ theme, layout }: PluginSurfaceProps) {
               onReorder={(visible) => commitOrder(reorderVisible(order, visible))}
               onRemove={togglePin}
             />
-            {savePins.isError ? <Text style={styles.orderError}>{messages.pinSaveFailed}</Text> : null}
+            {savePins.isError || saveColumns.isError ? (
+              <Text style={styles.orderError}>{messages.pinSaveFailed}</Text>
+            ) : null}
           </View>
         ) : null}
 

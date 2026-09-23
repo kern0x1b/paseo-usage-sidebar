@@ -13,7 +13,7 @@ import { SelectionSchema, type Selection } from "../../shared/selection/contract
  * daemon-owned files, and replaced atomically so a crash mid-write cannot leave
  * a truncated file behind.
  */
-const EMPTY: Selection = { keys: [], configured: false };
+const EMPTY: Selection = { keys: [], configured: false, columns: 1 };
 
 function stateFile(): string {
   const base = process.env.XDG_STATE_HOME?.trim() || join(homedir(), ".local", "state");
@@ -29,9 +29,17 @@ export function readSelectionState(): Selection {
   }
 }
 
-export function writeSelectionState({ keys }: { keys: string[] }): Selection {
-  const unique = [...new Set(keys.filter((key) => typeof key === "string" && key.length > 0))];
-  const next: Selection = { keys: unique, configured: true };
+export function writeSelectionState({ keys, columns }: { keys?: string[]; columns?: number }): Selection {
+  const current = readSelectionState();
+  // A columns-only write must not mark the pins as configured: that would swap the
+  // meter's default rows for an empty list the user never chose.
+  const next: Selection = keys
+    ? {
+        keys: [...new Set(keys.filter((key) => typeof key === "string" && key.length > 0))],
+        configured: true,
+        columns: columns ?? current.columns,
+      }
+    : { ...current, columns: columns ?? current.columns };
   const path = stateFile();
   try {
     mkdirSync(join(path, ".."), { recursive: true, mode: 0o700 });
@@ -45,6 +53,8 @@ export function writeSelectionState({ keys }: { keys: string[] }): Selection {
     console.error("[usage-sidebar] Could not persist the sidebar selection", error);
     throw new Error(`Could not persist the sidebar selection: ${error instanceof Error ? error.message : error}`);
   }
-  console.log(`[usage-sidebar] Pinned rows saved: ${next.keys.join(", ") || "(none)"}`);
+  console.log(
+    `[usage-sidebar] Pinned rows saved: ${next.keys.join(", ") || "(none)"}, ${next.columns} column(s)`,
+  );
   return next;
 }

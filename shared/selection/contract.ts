@@ -12,7 +12,11 @@ export const SelectionSchema = z.object({
   keys: z.array(z.string()).default([]),
   /** False until the user picks anything; the meter then shows its own default. */
   configured: z.boolean().default(false),
+  /** How many windows the meter lays side by side under each provider name. */
+  columns: z.number().int().min(1).max(3).default(1),
 });
+
+export const METER_COLUMN_OPTIONS = [1, 2, 3] as const;
 
 export type Selection = z.output<typeof SelectionSchema>;
 
@@ -24,7 +28,11 @@ export const readSelection = defineRpc({
 
 export const writeSelection = defineRpc({
   name: "selection.write",
-  input: z.object({ keys: z.array(z.string()) }),
+  /** Either field may be sent alone; the one left out keeps its saved value. */
+  input: z.object({
+    keys: z.array(z.string()).optional(),
+    columns: z.number().int().min(1).max(3).optional(),
+  }),
   output: SelectionSchema,
 });
 
@@ -78,7 +86,7 @@ export type PinnedRow = {
  */
 export function pinnedRows(
   snapshot: UsageSnapshot,
-  selection: Selection,
+  selection: Pick<Selection, "keys" | "configured">,
   labelFor: (provider: ProviderUsage, window: UsageWindow, messages: Messages) => string,
   messages: Messages,
 ): PinnedRow[] {

@@ -51,6 +51,7 @@ export type Messages = {
   /** A window scoped to one model, e.g. `Weekly (Fable)`. */
   windowScoped: (base: string, scope: string) => string;
   showInSidebar: string;
+  meterColumns: string;
   hideFromSidebar: string;
   sidebarEmpty: string;
   /** The reorder block: the pinned rows in the order the meter paints them. */
@@ -92,6 +93,7 @@ const en: Messages = {
   windowMonthly: "This month",
   windowScoped: (base, scope) => `${base} (${scope})`,
   showInSidebar: "Show in sidebar",
+  meterColumns: "Columns",
   hideFromSidebar: "Hide from sidebar",
   sidebarEmpty: "Nothing pinned to the sidebar",
   sidebarOrder: "Sidebar order",
@@ -133,6 +135,7 @@ const zhCN: Messages = {
   // Chinese line; the interpunct is what Chinese UI copy uses to qualify a term.
   windowScoped: (base, scope) => `${base} · ${scope}`,
   showInSidebar: "在侧边栏显示",
+  meterColumns: "列数",
   hideFromSidebar: "从侧边栏移除",
   sidebarEmpty: "侧边栏未固定任何用量",
   sidebarOrder: "侧边栏顺序",
@@ -172,6 +175,7 @@ const ja: Messages = {
   windowMonthly: "今月",
   windowScoped: (base, scope) => `${base}（${scope}）`,
   showInSidebar: "サイドバーに表示",
+  meterColumns: "列数",
   hideFromSidebar: "サイドバーから削除",
   sidebarEmpty: "サイドバーに固定された項目はありません",
   sidebarOrder: "サイドバーの順序",
@@ -211,6 +215,7 @@ const ko: Messages = {
   windowMonthly: "이번 달",
   windowScoped: (base, scope) => `${base} (${scope})`,
   showInSidebar: "사이드바에 표시",
+  meterColumns: "열 수",
   hideFromSidebar: "사이드바에서 제거",
   sidebarEmpty: "사이드바에 고정된 항목 없음",
   sidebarOrder: "사이드바 순서",
@@ -250,6 +255,7 @@ const es: Messages = {
   windowMonthly: "Este mes",
   windowScoped: (base, scope) => `${base} (${scope})`,
   showInSidebar: "Mostrar en la barra lateral",
+  meterColumns: "Columnas",
   hideFromSidebar: "Quitar de la barra lateral",
   sidebarEmpty: "Nada fijado en la barra lateral",
   sidebarOrder: "Orden de la barra lateral",
@@ -289,6 +295,7 @@ const fr: Messages = {
   windowMonthly: "Ce mois-ci",
   windowScoped: (base, scope) => `${base} (${scope})`,
   showInSidebar: "Afficher dans la barre latérale",
+  meterColumns: "Colonnes",
   hideFromSidebar: "Retirer de la barre latérale",
   sidebarEmpty: "Rien d'épinglé dans la barre latérale",
   sidebarOrder: "Ordre de la barre latérale",
@@ -328,6 +335,7 @@ const ptBR: Messages = {
   windowMonthly: "Este mês",
   windowScoped: (base, scope) => `${base} (${scope})`,
   showInSidebar: "Mostrar na barra lateral",
+  meterColumns: "Colunas",
   hideFromSidebar: "Remover da barra lateral",
   sidebarEmpty: "Nada fixado na barra lateral",
   sidebarOrder: "Ordem da barra lateral",
@@ -367,6 +375,7 @@ const ru: Messages = {
   windowMonthly: "Этот месяц",
   windowScoped: (base, scope) => `${base} (${scope})`,
   showInSidebar: "Показать на боковой панели",
+  meterColumns: "Колонки",
   hideFromSidebar: "Убрать с боковой панели",
   sidebarEmpty: "На боковой панели ничего не закреплено",
   sidebarOrder: "Порядок в боковой панели",
@@ -406,6 +415,7 @@ const ar: Messages = {
   windowMonthly: "هذا الشهر",
   windowScoped: (base, scope) => `${base} (${scope})`,
   showInSidebar: "إظهار في الشريط الجانبي",
+  meterColumns: "الأعمدة",
   hideFromSidebar: "إزالة من الشريط الجانبي",
   sidebarEmpty: "لا شيء مثبَّت في الشريط الجانبي",
   sidebarOrder: "ترتيب الشريط الجانبي",
