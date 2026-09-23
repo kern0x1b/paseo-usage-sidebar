@@ -45,7 +45,8 @@ Every enabled provider in `~/.paseo/config.json` that extends `claude` and sets 
 Paseo's context tooltip finds plan limits by the agent's provider id in the daemon's list, where an
 extra account never appears. So agents on an extra account get a pill above the input instead:
 `27% · 23%` means the 5-hour and weekly windows. Clicking it opens the account's full card. Agents
-on the default account keep the native tooltip and get no pill.
+on the default account keep the native tooltip and get no pill. Turn it off with **Show limits in the message box**
+under **Sidebar order** in the panel.
 
 ### Sidebar meter columns
 
