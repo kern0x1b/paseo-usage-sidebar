@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="images/icon.png" width="320" alt="Paseo Usage Sidebar">
+</p>
+
 # Paseo Usage Sidebar — multi-account fork
 
 A fork of [RUIIIOVO/paseo-usage-sidebar](https://github.com/RUIIIOVO/paseo-usage-sidebar) for people
@@ -85,6 +89,10 @@ npm test
 ```
 
 Commits follow Conventional Commits; see [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## Project docs
+
+- [CHANGELOG.md](CHANGELOG.md) · [SECURITY.md](SECURITY.md) · [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) · [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## License
 

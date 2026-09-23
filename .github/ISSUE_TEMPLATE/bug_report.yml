@@ -1,0 +1,71 @@
+name: Bug Report
+description: Report a plugin issue
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not report security vulnerabilities here — see [SECURITY.md](../blob/main/SECURITY.md).
+        Never paste a token, a Keychain item, or the contents of a credentials file.
+  - type: input
+    id: paseo-version
+    attributes:
+      label: Paseo Version
+      placeholder: "0.8.0"
+    validations:
+      required: true
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin Version
+      description: From package.json, or the commit you are on.
+      placeholder: "1.1.1"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS
+      placeholder: "macOS 15.4 / Windows 11 / Ubuntu 24.04"
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where does it happen?
+      options:
+        - The usage panel
+        - The sidebar meter
+        - The composer pill
+        - Settings
+    validations:
+      required: true
+  - type: textarea
+    id: accounts
+    attributes:
+      label: Accounts setup
+      description: How many Claude accounts, and how the extra provider is configured (redact any path that identifies you).
+      placeholder: "Two: default ~/.claude and a custom provider extending claude with its own CLAUDE_CONFIG_DIR."
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened, and what did Settings → Usage show for the same account?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      value: |
+        1. Open the usage panel
+        2. ...
+        3. ...
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error Logs
+      description: Paste any error from the Paseo logs.
+      render: text
