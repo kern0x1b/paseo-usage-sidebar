@@ -99,7 +99,15 @@ export async function readUsage(
     // A reading got through, so whatever the last failures were, they were not
     // this session ending.
     linkFailure = INITIAL_LINK_FAILURE_STATE;
-    return { ...snapshot, providers: withClaudeAccounts(snapshot.providers, await claudeAccounts) };
+    const providers = withClaudeAccounts(snapshot.providers, await claudeAccounts);
+    const daemonProviderIds = new Set(snapshot.providers.map((provider) => provider.providerId));
+    return {
+      ...snapshot,
+      providers,
+      accountProviderIds: providers
+        .map((provider) => provider.providerId)
+        .filter((providerId) => !daemonProviderIds.has(providerId)),
+    };
   } catch (error) {
     const verdict = judgeLinkFailure(error, Date.now(), linkFailure);
     linkFailure = verdict.state;

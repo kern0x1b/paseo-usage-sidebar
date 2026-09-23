@@ -51,6 +51,7 @@ import {
 
 const REFRESH_INTERVAL_MS = 60_000;
 const STALE_TIME_MS = 30_000;
+const SNAPSHOT_QUERY_KEY = ["usage-sidebar", "snapshot"];
 
 /** Paseo's design tokens, inlined because the plugin theme only exposes colors. */
 const SPACE = { 1: 4, 1.5: 6, 2: 8, 3: 12, 4: 16, 6: 24 } as const;
@@ -168,6 +169,7 @@ function useStyles(theme: PluginTheme, compact: boolean, rtl: boolean) {
 
         provider: { gap: SPACE[4], paddingVertical: SPACE[4], paddingHorizontal: SPACE[4] },
         providerHeader: { flexDirection: row, alignItems: "center", gap: SPACE[2] },
+        popover: { width: 320 },
         providerName: { flexShrink: 1, color: theme.colors.foreground, fontSize: FONT.base, writingDirection, textAlign },
         headerSpacer: { flex: 1 },
         planBadge: {
@@ -677,7 +679,7 @@ function ProviderBlock({
   locale: Locale;
   messages: Messages;
   pinnedKeys: ReadonlySet<string>;
-  onTogglePin: (key: string) => void;
+  onTogglePin?: (key: string) => void;
 }) {
   const status = statusLabel(provider.status, messages);
   /**
@@ -738,7 +740,7 @@ function ProviderBlock({
               locale={locale}
               messages={messages}
               pinned={pinnedKeys.has(rowKey(provider.providerId, window.id))}
-              onTogglePin={() => onTogglePin(rowKey(provider.providerId, window.id))}
+              onTogglePin={onTogglePin ? () => onTogglePin(rowKey(provider.providerId, window.id)) : undefined}
             />
           ))}
           {provider.balances.map((balance) => (
@@ -803,7 +805,7 @@ export function UsageSurface({ theme, layout }: PluginSurfaceProps) {
   const persistSelection = useRpc(writeSelection);
 
   const query = useQuery<UsageSnapshot>({
-    queryKey: ["usage-sidebar", "snapshot"],
+    queryKey: SNAPSHOT_QUERY_KEY,
     queryFn: () => fetchUsage({}),
     refetchInterval: REFRESH_INTERVAL_MS,
     staleTime: STALE_TIME_MS,
@@ -992,6 +994,48 @@ export function UsageSurface({ theme, layout }: PluginSurfaceProps) {
         ) : null}
         </View>
       </ScrollView>
+    </View>
+  );
+}
+
+const NO_PINS: ReadonlySet<string> = new Set();
+
+/**
+ * One provider's card inside a composer pill popover. Shares the panel's query
+ * key, so opening it while the panel is open costs no extra fetch.
+ */
+export function AccountUsagePopover({
+  providerId,
+  theme,
+  layout,
+}: { providerId: string } & Pick<PluginSurfaceProps, "theme" | "layout">) {
+  const locale = useLocale(layout.platform);
+  const messages = useMemo(() => messagesFor(locale), [locale]);
+  const styles = useStyles(theme, true, isRtl(locale));
+  const fetchUsage = useRpc(listUsage);
+  const query = useQuery<UsageSnapshot>({
+    queryKey: SNAPSHOT_QUERY_KEY,
+    queryFn: () => fetchUsage({}),
+    refetchInterval: REFRESH_INTERVAL_MS,
+    staleTime: STALE_TIME_MS,
+  });
+  const provider = query.data?.providers.find((candidate) => candidate.providerId === providerId);
+
+  return (
+    <View style={styles.popover}>
+      {provider ? (
+        <ProviderBlock
+          provider={provider}
+          stale={false}
+          theme={theme}
+          styles={styles}
+          locale={locale}
+          messages={messages}
+          pinnedKeys={NO_PINS}
+        />
+      ) : (
+        <ActivityIndicator style={styles.provider} color={theme.colors.foregroundMuted} />
+      )}
     </View>
   );
 }

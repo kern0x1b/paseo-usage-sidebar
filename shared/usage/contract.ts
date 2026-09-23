@@ -61,6 +61,12 @@ export const UsageSnapshotSchema = z.object({
   fetchedAt: z.string().nullable().default(null),
   source: UsageSourceSchema,
   providers: z.array(ProviderUsageSchema).default([]),
+  /**
+   * Providers this plugin added on top of the daemon's list (see
+   * server/usage/claude-accounts.ts). The host's own context tooltip cannot see
+   * them, so these are the ones that get a composer pill.
+   */
+  accountProviderIds: z.array(z.string()).default([]),
 });
 
 export type UsageTone = z.output<typeof UsageToneSchema>;

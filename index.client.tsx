@@ -1,6 +1,7 @@
 import type { PluginCleanup } from "@getpaseo/plugin";
 import type { PluginClientContext } from "@getpaseo/plugin/client";
 import { subscribeLocale } from "./client/i18n/locale";
+import { startComposerPills } from "./client/ui/composer-pills";
 import { startSidebarMeter } from "./client/ui/sidebar-meter";
 import { sidebarTitle } from "./client/ui/sidebar-title";
 import { UsageSurface } from "./client/ui/usage-surface";
@@ -44,8 +45,8 @@ function registerLabels(client: PluginClientContext): PluginCleanup {
 }
 
 /**
- * Client entry: the surface, its sidebar row, the Command Center shortcut, and
- * the sidebar meter.
+ * Client entry: the surface, its sidebar row, the Command Center shortcut, the
+ * sidebar meter, and the composer pills for extra Claude accounts.
  *
  * The meter used to be registered through `plugin.addClientSide(startSidebarMeter)`.
  * 0.8 drops that wrapper because this entry *is* the client callback — it already
@@ -65,12 +66,14 @@ export default function contribute(client: PluginClientContext): PluginCleanup {
   });
 
   const stopMeter = startSidebarMeter(client);
+  const stopPills = startComposerPills(client);
 
   // The removers are idempotent, so running them here is safe even though Paseo
   // also drops outstanding registrations after this cleanup returns.
   return () => {
     stopWatchingLocale();
     stopMeter();
+    stopPills();
     removeLabels();
     removeSurface();
   };
