@@ -300,9 +300,12 @@ export function startSidebarMeter(client: PluginClientContext): PluginCleanup {
       section.append(provider);
 
       // One column is the original stacked list; more put a provider's windows
-      // side by side, so the 5-hour and weekly rows share one line.
+      // side by side, so the 5-hour and weekly rows share one line. Never more
+      // columns than the provider has rows: a spare one is just a blank strip
+      // that squeezes the cells that do exist.
+      const columns = Math.min(selection.columns, group.rows.length);
       const grid = document.createElement("div");
-      grid.style.cssText = `display:grid;grid-template-columns:repeat(${selection.columns}, minmax(0, 1fr));column-gap:12px;row-gap:8px;`;
+      grid.style.cssText = `display:grid;grid-template-columns:repeat(${columns}, minmax(0, 1fr));column-gap:12px;row-gap:8px;`;
       section.append(grid);
 
       for (const row of group.rows) {
