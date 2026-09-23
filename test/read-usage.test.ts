@@ -45,6 +45,8 @@ let logged: string[] = [];
 const realError = console.error;
 
 beforeEach(() => {
+  // Keeps the extra-Claude-account lookup away from the real ~/.paseo/config.json.
+  process.env.PASEO_HOME = "/nonexistent/paseo-home";
   logged = [];
   console.error = (...args: unknown[]) => void logged.push(args.map(String).join(" "));
 });

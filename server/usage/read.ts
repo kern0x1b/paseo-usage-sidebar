@@ -1,5 +1,6 @@
 import type { PluginHandlerContext } from "@getpaseo/plugin/server";
 import { UsageSnapshotSchema, type UsageSnapshot } from "../../shared/usage/contract";
+import { listClaudeAccountUsage, withClaudeAccounts } from "./claude-accounts";
 import {
   errorMessage,
   HOST_LINK_LOST_CODE,
@@ -86,6 +87,9 @@ export async function readUsage(
   _input: Record<string, never>,
   context: PluginHandlerContext,
 ): Promise<UsageSnapshot> {
+  // Started before the daemon call so both run in parallel. It never rejects, so
+  // nothing it does can be mistaken for the daemon link failing below.
+  const claudeAccounts = listClaudeAccountUsage();
   try {
     const fault = injectedFault();
     if (fault) {
@@ -95,7 +99,7 @@ export async function readUsage(
     // A reading got through, so whatever the last failures were, they were not
     // this session ending.
     linkFailure = INITIAL_LINK_FAILURE_STATE;
-    return snapshot;
+    return { ...snapshot, providers: withClaudeAccounts(snapshot.providers, await claudeAccounts) };
   } catch (error) {
     const verdict = judgeLinkFailure(error, Date.now(), linkFailure);
     linkFailure = verdict.state;
