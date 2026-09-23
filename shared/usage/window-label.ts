@@ -51,3 +51,27 @@ export function windowLabel(window: UsageWindow, messages: Messages): string {
   }
   return window.label;
 }
+
+/**
+ * A code short enough for a meter column: `5H`, `1W`, `1W Fable`, `1D`, `1M`.
+ * Language-neutral on purpose; the full localized label stays in the tooltip.
+ */
+export function windowShortLabel(window: UsageWindow): string {
+  if (window.id === "five_hour") {
+    return "5H";
+  }
+  if (window.id === "weekly") {
+    return "1W";
+  }
+  if (window.id.startsWith("weekly_")) {
+    const suffix = modelSuffix(window);
+    return suffix ? `1W ${suffix}` : "1W";
+  }
+  if (window.id === "daily") {
+    return "1D";
+  }
+  if (window.id === "monthly") {
+    return "1M";
+  }
+  return window.label;
+}

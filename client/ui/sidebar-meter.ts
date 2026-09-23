@@ -8,6 +8,7 @@ import {
   clampPct,
   formatPct,
   formatResetPrimary,
+  formatRemainingCompact,
   formatResetSecondary,
   formatRunsOutLabel,
   resolveTone,
@@ -15,7 +16,7 @@ import {
 import { STATUS_DARK, STATUS_LIGHT, type Palette } from "../../shared/usage/palette";
 import { isMeterStale } from "../../shared/usage/errors";
 import { listUsage, type UsageSnapshot, type UsageTone, type UsageWindow } from "../../shared/usage/contract";
-import { windowLabel } from "../../shared/usage/window-label";
+import { windowLabel, windowShortLabel } from "../../shared/usage/window-label";
 
 /**
  * An always-visible meter directly under the plugin's own sidebar item.
@@ -308,6 +309,12 @@ export function startSidebarMeter(client: PluginClientContext): PluginCleanup {
         const item = document.createElement("div");
         item.style.cssText = "display:flex;flex-direction:column;gap:3px;";
 
+        if (selection.columns > 1) {
+          appendCompactCell(item, row, labelColor, trackColor, palette);
+          grid.append(item);
+          continue;
+        }
+
         const head = document.createElement("div");
         head.style.cssText = "display:flex;justify-content:space-between;gap:8px;align-items:baseline;";
 
@@ -356,6 +363,54 @@ export function startSidebarMeter(client: PluginClientContext): PluginCleanup {
     }
 
     node.title = messages.title;
+  }
+
+  /**
+   * A column cell: `5H 25%` and the time left on one line, the bar under it. Two
+   * lines instead of three, and short enough to fit a third of the sidebar. The
+   * full label and both reset forms move to the tooltip.
+   */
+  function appendCompactCell(
+    item: HTMLElement,
+    row: MeterRow,
+    labelColor: string,
+    trackColor: string,
+    palette: Palette,
+  ): void {
+    const atRisk = row.window.runsOutAt != null && row.window.shortfallPct != null;
+    const remaining = formatRemainingCompact(atRisk ? row.window.runsOutAt : row.window.resetsAt, messages);
+
+    const head = document.createElement("div");
+    head.style.cssText = "display:flex;justify-content:space-between;gap:6px;align-items:baseline;white-space:nowrap;";
+
+    const reading = document.createElement("span");
+    reading.style.cssText = `color:${labelColor};font-size:11px;flex-shrink:0;`;
+    const code = document.createElement("span");
+    code.textContent = `${windowShortLabel(row.window)} `;
+    code.style.opacity = "0.85";
+    const value = document.createElement("span");
+    value.textContent = row.usedPct != null ? formatPct(row.usedPct, locale) : "\u2014";
+    value.style.fontWeight = "500";
+    reading.append(code, value);
+    head.append(reading);
+
+    if (remaining) {
+      const time = document.createElement("span");
+      time.textContent = remaining;
+      time.style.cssText = `color:${atRisk ? palette.danger : labelColor};font-size:11px;opacity:${atRisk ? "1" : "0.85"};min-width:0;overflow:hidden;text-overflow:ellipsis;`;
+      head.append(time);
+    }
+
+    const track = document.createElement("div");
+    track.style.cssText = `height:3px;border-radius:2px;background:${trackColor};overflow:hidden;`;
+    const fill = document.createElement("div");
+    fill.style.cssText = `height:3px;border-radius:2px;width:${clampPct(row.usedPct ?? 0)}%;background:${palette[row.tone]};`;
+    track.append(fill);
+    item.append(head, track);
+
+    const timing = rowTiming(row, messages, locale);
+    item.title = [row.label, timing.text, timing.alternate].filter(Boolean).join(" · ");
+    item.style.pointerEvents = "auto";
   }
 
   function ensureMounted(): void {

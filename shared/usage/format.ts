@@ -136,6 +136,15 @@ export function formatRunsOutLabel(iso: string | null | undefined, messages: Mes
   return duration ? messages.runsOut(duration) : null;
 }
 
+/**
+ * The bare time left, for a meter cell with no room for "resets in": `7m`,
+ * `3h 27m`, `2d 20h`. Null once the instant has passed or when it is unknown.
+ */
+export function formatRemainingCompact(iso: string | null | undefined, messages: Messages): string | null {
+  const remaining = remainingMs(iso);
+  return remaining == null ? null : compactDuration(remaining, messages);
+}
+
 export function formatAgo(iso: string | null | undefined, messages: Messages): string | null {
   if (!iso) {
     return null;
