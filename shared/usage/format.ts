@@ -216,8 +216,29 @@ export function resolveTone(reported: UsageTone | undefined, usedPct: number | n
   return SEVERITY[reported] >= SEVERITY[derived] ? reported : derived;
 }
 
+/**
+ * Whether the window's reset instant has already passed. Paseo caches usage for
+ * five minutes, so a window that just reset can still arrive with its old 100%;
+ * past its reset it is empty whatever the cached number says.
+ */
+export function hasReset(window: UsageWindow, nowMs: number = Date.now()): boolean {
+  if (!window.resetsAt) {
+    return false;
+  }
+  const resetMs = new Date(window.resetsAt).getTime();
+  return Number.isFinite(resetMs) && resetMs <= nowMs;
+}
+
+/** The tone to paint, dropping a stale escalation once the window has reset. */
+export function windowTone(window: UsageWindow): UsageTone {
+  return hasReset(window) ? deriveTone(0) : resolveTone(window.tone, windowUsedPct(window));
+}
+
 /** A window reports either the consumed or the remaining share; normalize to consumed. */
 export function windowUsedPct(window: UsageWindow): number | null {
+  if (hasReset(window)) {
+    return 0;
+  }
   if (window.usedPct != null) {
     return window.usedPct;
   }

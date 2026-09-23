@@ -360,10 +360,22 @@ async function fetchAccountUsage(
   });
 }
 
-const cache = new Map<
-  string,
-  { key: string; fetchedAtMs: number; usage: Promise<ProviderUsage> }
->();
+type CacheEntry = {
+  key: string;
+  fetchedAtMs: number;
+  usage: Promise<ProviderUsage>;
+  /** Earliest window reset in the answer, once it arrives; a cache older than that is stale. */
+  nextResetMs: number;
+};
+
+const cache = new Map<string, CacheEntry>();
+
+function earliestReset(usage: ProviderUsage): number {
+  const resets = usage.windows
+    .map((window) => (window.resetsAt ? new Date(window.resetsAt).getTime() : Number.NaN))
+    .filter(Number.isFinite);
+  return resets.length > 0 ? Math.min(...resets) : Number.POSITIVE_INFINITY;
+}
 
 /**
  * Usage for every extra Claude account, one entry per provider. `config.json` is
@@ -383,7 +395,8 @@ export async function listClaudeAccountUsage(
       if (
         cached &&
         cached.key === key &&
-        nowMs - cached.fetchedAtMs < CACHE_TTL_MS
+        nowMs - cached.fetchedAtMs < CACHE_TTL_MS &&
+        nowMs < cached.nextResetMs
       ) {
         return cached.usage;
       }
@@ -393,7 +406,11 @@ export async function listClaudeAccountUsage(
           error instanceof Error ? error.message : String(error),
         ),
       );
-      cache.set(account.providerId, { key, fetchedAtMs: nowMs, usage });
+      const entry: CacheEntry = { key, fetchedAtMs: nowMs, usage, nextResetMs: Number.POSITIVE_INFINITY };
+      void usage.then((resolved) => {
+        entry.nextResetMs = earliestReset(resolved);
+      });
+      cache.set(account.providerId, entry);
       return usage;
     }),
   );

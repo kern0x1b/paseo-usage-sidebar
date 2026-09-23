@@ -22,6 +22,7 @@ import {
   formatRunsOutLabel,
   resolveTone,
   statusLabel,
+  windowTone,
   windowUsedPct,
 } from "../../shared/usage/format";
 import { paletteForSurface } from "../../shared/usage/palette";
@@ -273,7 +274,7 @@ function WindowBar({
   onTogglePin?: () => void;
 }) {
   const usedPct = windowUsedPct(window);
-  const tone = resolveTone(window.tone, usedPct);
+  const tone = windowTone(window);
   const atRisk = window.runsOutAt != null && window.shortfallPct != null;
   const trailing = atRisk
     ? formatRunsOutLabel(window.runsOutAt, messages)

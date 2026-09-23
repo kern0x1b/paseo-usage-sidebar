@@ -2,6 +2,7 @@ import { defineRpc } from "@getpaseo/plugin";
 import { z } from "zod";
 import type { Messages } from "../i18n/messages";
 import type { ProviderUsage, UsageSnapshot, UsageWindow } from "../usage/contract";
+import { windowUsedPct } from "../usage/format";
 
 /**
  * Which rows the sidebar meter pins. A row is identified by provider and window
@@ -111,7 +112,7 @@ export function pinnedRows(
       providerId: provider.providerId,
       providerName: provider.displayName,
       label: labelFor(provider, window, messages),
-      usedPct: window.usedPct ?? (window.remainingPct != null ? 100 - window.remainingPct : null),
+      usedPct: windowUsedPct(window),
       window,
     });
   }

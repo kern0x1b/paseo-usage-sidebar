@@ -154,6 +154,22 @@ describe("listClaudeAccountUsage", () => {
     assert.match(failed[0]?.error ?? "", /500/);
   });
 
+  it("refetches once a cached window has reset, before the TTL runs out", async () => {
+    const { listClaudeAccountUsage } = await freshModule();
+    let nowMs = Date.parse("2026-09-23T13:00:00Z");
+    const host = deps(configWith({ "claude-work": WORK_PROVIDER }), {
+      body: { five_hour: { utilization: 100, resets_at: "2026-09-23T13:01:00Z" } },
+    });
+    const value = { ...host.value, now: () => nowMs };
+    await listClaudeAccountUsage(value);
+    nowMs += 30_000;
+    await listClaudeAccountUsage(value);
+    assert.equal(host.calls(), 1);
+    nowMs += 60_000;
+    await listClaudeAccountUsage(value);
+    assert.equal(host.calls(), 2);
+  });
+
   it("serves a second poll from cache", async () => {
     const { listClaudeAccountUsage } = await freshModule();
     const host = deps(configWith({ "claude-work": WORK_PROVIDER }));

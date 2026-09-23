@@ -11,7 +11,7 @@ import {
   formatRemainingCompact,
   formatResetSecondary,
   formatRunsOutLabel,
-  resolveTone,
+  windowTone,
 } from "../../shared/usage/format";
 import { STATUS_DARK, STATUS_LIGHT, type Palette } from "../../shared/usage/palette";
 import { isMeterStale } from "../../shared/usage/errors";
@@ -209,7 +209,7 @@ function toGroups(snapshot: UsageSnapshot, selection: Selection, messages: Messa
     const entry: MeterRow = {
       label: row.label,
       usedPct: row.usedPct,
-      tone: resolveTone(row.window.tone, row.usedPct),
+      tone: windowTone(row.window),
       window: row.window,
     };
     const last = groups[groups.length - 1];
