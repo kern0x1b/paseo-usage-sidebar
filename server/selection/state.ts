@@ -13,7 +13,7 @@ import { SelectionSchema, type Selection } from "../../shared/selection/contract
  * daemon-owned files, and replaced atomically so a crash mid-write cannot leave
  * a truncated file behind.
  */
-const EMPTY: Selection = { keys: [], configured: false, columns: 1 };
+const EMPTY: Selection = { keys: [], configured: false, columns: 1, composerPill: true };
 
 function stateFile(): string {
   const base = process.env.XDG_STATE_HOME?.trim() || join(homedir(), ".local", "state");
@@ -29,17 +29,26 @@ export function readSelectionState(): Selection {
   }
 }
 
-export function writeSelectionState({ keys, columns }: { keys?: string[]; columns?: number }): Selection {
+export function writeSelectionState({
+  keys,
+  columns,
+  composerPill,
+}: {
+  keys?: string[];
+  columns?: number;
+  composerPill?: boolean;
+}): Selection {
   const current = readSelectionState();
-  // A columns-only write must not mark the pins as configured: that would swap the
+  // A write without keys must not mark the pins as configured: that would swap the
   // meter's default rows for an empty list the user never chose.
-  const next: Selection = keys
-    ? {
-        keys: [...new Set(keys.filter((key) => typeof key === "string" && key.length > 0))],
-        configured: true,
-        columns: columns ?? current.columns,
-      }
-    : { ...current, columns: columns ?? current.columns };
+  const next: Selection = {
+    ...current,
+    ...(keys
+      ? { keys: [...new Set(keys.filter((key) => typeof key === "string" && key.length > 0))], configured: true }
+      : {}),
+    columns: columns ?? current.columns,
+    composerPill: composerPill ?? current.composerPill,
+  };
   const path = stateFile();
   try {
     mkdirSync(join(path, ".."), { recursive: true, mode: 0o700 });
@@ -54,7 +63,8 @@ export function writeSelectionState({ keys, columns }: { keys?: string[]; column
     throw new Error(`Could not persist the sidebar selection: ${error instanceof Error ? error.message : error}`);
   }
   console.log(
-    `[usage-sidebar] Pinned rows saved: ${next.keys.join(", ") || "(none)"}, ${next.columns} column(s)`,
+    `[usage-sidebar] Pinned rows saved: ${next.keys.join(", ") || "(none)"}, ${next.columns} column(s), ` +
+      `composer pill ${next.composerPill ? "on" : "off"}`,
   );
   return next;
 }

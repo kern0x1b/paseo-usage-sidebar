@@ -235,7 +235,7 @@ export function startSidebarMeter(client: PluginClientContext): PluginCleanup {
   let messages: Messages = messagesFor(locale);
   let node: HTMLElement | null = null;
   let snapshot: UsageSnapshot | null = null;
-  let selection: Selection = { keys: [], configured: false, columns: 1 };
+  let selection: Selection = { keys: [], configured: false, columns: 1, composerPill: true };
   let groups: MeterGroup[] = [];
   let stopped = false;
   let appearance: Appearance | null = null;

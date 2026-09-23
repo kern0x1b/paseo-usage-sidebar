@@ -171,6 +171,17 @@ function useStyles(theme: PluginTheme, compact: boolean, rtl: boolean) {
         columnsOptionActive: { backgroundColor: theme.colors.surface2 },
         columnsOptionLabel: { color: theme.colors.foregroundMuted, fontSize: FONT.sm },
         columnsOptionLabelActive: { color: theme.colors.foreground },
+        checkboxRow: { flexDirection: row, alignItems: "center", gap: SPACE[2], marginTop: SPACE[3], marginLeft: SPACE[1] },
+        checkbox: {
+          width: 16,
+          height: 16,
+          borderRadius: 4,
+          borderWidth: 1,
+          borderColor: theme.colors.border,
+          alignItems: "center",
+          justifyContent: "center",
+        },
+        checkboxChecked: { backgroundColor: theme.colors.surface2 },
 
         card: {
           backgroundColor: theme.colors.surface1,
@@ -902,13 +913,16 @@ export function UsageSurface({ theme, layout }: PluginSurfaceProps) {
   });
 
   const columns = selectionQuery.data?.columns ?? 1;
-  const saveColumns = useMutation({
-    mutationFn: (next: number) => persistSelection({ columns: next }),
+  const composerPill = selectionQuery.data?.composerPill ?? true;
+  const saveLayout = useMutation({
+    mutationFn: (next: { columns?: number; composerPill?: boolean }) => persistSelection(next),
     onSuccess: (selection) => {
       queryClient.setQueryData(["usage-sidebar", "selection"], selection);
       publishSelection(selection);
     },
   });
+
+  const pillShown = saveLayout.isPending ? (saveLayout.variables.composerPill ?? composerPill) : composerPill;
 
   const commitOrder = (keys: string[]) => {
     setLocalOrder(keys);
@@ -984,14 +998,14 @@ export function UsageSurface({ theme, layout }: PluginSurfaceProps) {
                 <Text style={styles.sectionHeaderTitle}>{messages.meterColumns}</Text>
                 <View style={styles.columnsOptions} accessibilityRole="radiogroup">
                   {METER_COLUMN_OPTIONS.map((option) => {
-                    const active = option === (saveColumns.isPending ? saveColumns.variables : columns);
+                    const active = option === (saveLayout.isPending ? (saveLayout.variables.columns ?? columns) : columns);
                     return (
                       <Pressable
                         key={option}
                         accessibilityRole="radio"
                         accessibilityLabel={`${messages.meterColumns}: ${option}`}
                         accessibilityState={{ checked: active }}
-                        onPress={() => saveColumns.mutate(option)}
+                        onPress={() => saveLayout.mutate({ columns: option })}
                         style={[styles.columnsOption, active ? styles.columnsOptionActive : null]}
                       >
                         <Text style={[styles.columnsOptionLabel, active ? styles.columnsOptionLabelActive : null]}>
@@ -1014,7 +1028,18 @@ export function UsageSurface({ theme, layout }: PluginSurfaceProps) {
               onReorder={(visible) => commitOrder(reorderVisible(order, visible))}
               onRemove={togglePin}
             />
-            {savePins.isError || saveColumns.isError ? (
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: pillShown }}
+              onPress={() => saveLayout.mutate({ composerPill: !pillShown })}
+              style={styles.checkboxRow}
+            >
+              <View style={[styles.checkbox, pillShown ? styles.checkboxChecked : null]}>
+                {pillShown ? <Icon name="Check" size={12} color={theme.colors.foreground} /> : null}
+              </View>
+              <Text style={styles.sectionHeaderTitle}>{messages.composerPillToggle}</Text>
+            </Pressable>
+            {savePins.isError || saveLayout.isError ? (
               <Text style={styles.orderError}>{messages.pinSaveFailed}</Text>
             ) : null}
           </View>

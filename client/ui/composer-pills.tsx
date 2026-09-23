@@ -12,6 +12,8 @@ import {
   type ProviderUsage,
   type UsageSnapshot,
 } from "../../shared/usage/contract";
+import { readSelection, type Selection } from "../../shared/selection/contract";
+import { getSelection, subscribeSelection } from "../selection/store";
 import { AccountUsagePopover } from "./usage-surface";
 
 /**
@@ -61,6 +63,8 @@ export function startComposerPills(client: PluginClientContext): PluginCleanup {
   const popovers = new Map<string, ComponentType<PluginButtonContentProps>>();
   let snapshot: UsageSnapshot | null = null;
   let stopped = false;
+  /** The panel's "Show limits in the message box" checkbox; on until the saved selection says otherwise. */
+  let enabled = getSelection()?.composerPill ?? true;
 
   /** One component per provider, so an update never swaps the popover's identity under an open pill. */
   function popoverFor(
@@ -84,7 +88,7 @@ export function startComposerPills(client: PluginClientContext): PluginCleanup {
     if (stopped) {
       return;
     }
-    const accountIds = new Set(snapshot?.accountProviderIds ?? []);
+    const accountIds = new Set(enabled ? (snapshot?.accountProviderIds ?? []) : []);
     for (const [agentId, pill] of pills) {
       const agent = agents.get(agentId);
       if (
@@ -176,6 +180,22 @@ export function startComposerPills(client: PluginClientContext): PluginCleanup {
     }
   }
 
+  // The panel publishes every save here, so the checkbox takes effect at once.
+  const unsubscribeSelection = subscribeSelection((selection: Selection) => {
+    enabled = selection.composerPill;
+    sync();
+  });
+
+  async function loadSelection(): Promise<void> {
+    try {
+      enabled = ((await client.rpc(readSelection, {})) as Selection).composerPill;
+      sync();
+    } catch {
+      // Stays on, which is the default.
+    }
+  }
+
+  void loadSelection();
   void loadAgents();
   void refresh();
   const timer = setInterval(() => void refresh(), REFRESH_INTERVAL_MS);
@@ -187,6 +207,7 @@ export function startComposerPills(client: PluginClientContext): PluginCleanup {
     clearInterval(timer);
     unsubscribeAgents();
     unsubscribeLocale();
+    unsubscribeSelection();
     for (const pill of pills.values()) {
       pill.registration.remove();
     }

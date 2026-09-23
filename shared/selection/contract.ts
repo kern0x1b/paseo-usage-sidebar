@@ -15,6 +15,8 @@ export const SelectionSchema = z.object({
   configured: z.boolean().default(false),
   /** How many windows the meter lays side by side under each provider name. */
   columns: z.number().int().min(1).max(3).default(1),
+  /** Whether agents on an extra Claude account get the usage pill in their composer. */
+  composerPill: z.boolean().default(true),
 });
 
 export const METER_COLUMN_OPTIONS = [1, 2, 3] as const;
@@ -29,10 +31,11 @@ export const readSelection = defineRpc({
 
 export const writeSelection = defineRpc({
   name: "selection.write",
-  /** Either field may be sent alone; the one left out keeps its saved value. */
+  /** Any field may be sent alone; the ones left out keep their saved values. */
   input: z.object({
     keys: z.array(z.string()).optional(),
     columns: z.number().int().min(1).max(3).optional(),
+    composerPill: z.boolean().optional(),
   }),
   output: SelectionSchema,
 });

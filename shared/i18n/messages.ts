@@ -52,6 +52,7 @@ export type Messages = {
   windowScoped: (base: string, scope: string) => string;
   showInSidebar: string;
   meterColumns: string;
+  composerPillToggle: string;
   hideFromSidebar: string;
   sidebarEmpty: string;
   /** The reorder block: the pinned rows in the order the meter paints them. */
@@ -94,6 +95,7 @@ const en: Messages = {
   windowScoped: (base, scope) => `${base} (${scope})`,
   showInSidebar: "Show in sidebar",
   meterColumns: "Columns",
+  composerPillToggle: "Show limits in the message box",
   hideFromSidebar: "Hide from sidebar",
   sidebarEmpty: "Nothing pinned to the sidebar",
   sidebarOrder: "Sidebar order",
@@ -136,6 +138,7 @@ const zhCN: Messages = {
   windowScoped: (base, scope) => `${base} · ${scope}`,
   showInSidebar: "在侧边栏显示",
   meterColumns: "列数",
+  composerPillToggle: "在输入框中显示限额",
   hideFromSidebar: "从侧边栏移除",
   sidebarEmpty: "侧边栏未固定任何用量",
   sidebarOrder: "侧边栏顺序",
@@ -176,6 +179,7 @@ const ja: Messages = {
   windowScoped: (base, scope) => `${base}（${scope}）`,
   showInSidebar: "サイドバーに表示",
   meterColumns: "列数",
+  composerPillToggle: "入力欄に上限を表示",
   hideFromSidebar: "サイドバーから削除",
   sidebarEmpty: "サイドバーに固定された項目はありません",
   sidebarOrder: "サイドバーの順序",
@@ -216,6 +220,7 @@ const ko: Messages = {
   windowScoped: (base, scope) => `${base} (${scope})`,
   showInSidebar: "사이드바에 표시",
   meterColumns: "열 수",
+  composerPillToggle: "입력창에 한도 표시",
   hideFromSidebar: "사이드바에서 제거",
   sidebarEmpty: "사이드바에 고정된 항목 없음",
   sidebarOrder: "사이드바 순서",
@@ -256,6 +261,7 @@ const es: Messages = {
   windowScoped: (base, scope) => `${base} (${scope})`,
   showInSidebar: "Mostrar en la barra lateral",
   meterColumns: "Columnas",
+  composerPillToggle: "Mostrar límites en el cuadro de mensaje",
   hideFromSidebar: "Quitar de la barra lateral",
   sidebarEmpty: "Nada fijado en la barra lateral",
   sidebarOrder: "Orden de la barra lateral",
@@ -296,6 +302,7 @@ const fr: Messages = {
   windowScoped: (base, scope) => `${base} (${scope})`,
   showInSidebar: "Afficher dans la barre latérale",
   meterColumns: "Colonnes",
+  composerPillToggle: "Afficher les limites dans la zone de message",
   hideFromSidebar: "Retirer de la barre latérale",
   sidebarEmpty: "Rien d'épinglé dans la barre latérale",
   sidebarOrder: "Ordre de la barre latérale",
@@ -336,6 +343,7 @@ const ptBR: Messages = {
   windowScoped: (base, scope) => `${base} (${scope})`,
   showInSidebar: "Mostrar na barra lateral",
   meterColumns: "Colunas",
+  composerPillToggle: "Mostrar limites na caixa de mensagem",
   hideFromSidebar: "Remover da barra lateral",
   sidebarEmpty: "Nada fixado na barra lateral",
   sidebarOrder: "Ordem da barra lateral",
@@ -376,6 +384,7 @@ const ru: Messages = {
   windowScoped: (base, scope) => `${base} (${scope})`,
   showInSidebar: "Показать на боковой панели",
   meterColumns: "Колонки",
+  composerPillToggle: "Показывать лимиты в поле ввода",
   hideFromSidebar: "Убрать с боковой панели",
   sidebarEmpty: "На боковой панели ничего не закреплено",
   sidebarOrder: "Порядок в боковой панели",
@@ -416,6 +425,7 @@ const ar: Messages = {
   windowScoped: (base, scope) => `${base} (${scope})`,
   showInSidebar: "إظهار في الشريط الجانبي",
   meterColumns: "الأعمدة",
+  composerPillToggle: "إظهار الحدود في مربع الرسالة",
   hideFromSidebar: "إزالة من الشريط الجانبي",
   sidebarEmpty: "لا شيء مثبَّت في الشريط الجانبي",
   sidebarOrder: "ترتيب الشريط الجانبي",
