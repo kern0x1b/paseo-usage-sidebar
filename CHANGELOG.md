@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- The panel under **Settings → Plan usage**, for setting the pins and columns up once
+
+### Fixed
+- Hiding the Plan usage entry in Paseo's sidebar settings no longer hides the meter: it moves under
+  the lowest entry still shown
+
 ## [1.1.1] - 2026-09-23
 
 ### Added

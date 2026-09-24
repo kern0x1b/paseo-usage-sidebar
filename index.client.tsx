@@ -9,7 +9,7 @@ import { UsageSurface } from "./client/ui/usage-surface";
 const SURFACE_ID = "usage";
 
 /**
- * The two host registrations that carry a *string* label rather than a component.
+ * The host registrations that carry a *string* label rather than a component.
  *
  * Everything else in this plugin re-renders or repaints from the live locale, but
  * these hand Paseo a fixed string, so the only way to change the language they
@@ -23,6 +23,14 @@ function registerLabels(client: PluginClientContext): PluginCleanup {
       title,
       icon: "Gauge",
       surface: SURFACE_ID,
+    }),
+    // The same panel under Settings: set the pins up once, then the sidebar entry can be
+    // hidden in Settings → Appearance → Sidebar and the meter stays.
+    client.addSettingsScreen({
+      id: SURFACE_ID,
+      title,
+      icon: "Gauge",
+      Component: UsageSurface,
     }),
     client.addCommandCenterItem({
       id: "open-usage",
@@ -45,8 +53,8 @@ function registerLabels(client: PluginClientContext): PluginCleanup {
 }
 
 /**
- * Client entry: the surface, its sidebar row, the Command Center shortcut, the
- * sidebar meter, and the composer pills for extra Claude accounts.
+ * Client entry: the surface, its sidebar row, its settings screen, the Command
+ * Center shortcut, the sidebar meter, and the composer pills for extra Claude accounts.
  *
  * The meter used to be registered through `plugin.addClientSide(startSidebarMeter)`.
  * 0.8 drops that wrapper because this entry *is* the client callback — it already

@@ -29,9 +29,30 @@ import { windowLabel, windowShortLabel } from "../../shared/usage/window-label";
  * every step that depends on host internals degrades to "render nothing".
  *
  * Anchor: the row's testID, which Paseo derives from this plugin's own id, so it
- * cannot collide with another plugin.
+ * cannot collide with another plugin. Paseo lets you hide any sidebar entry in
+ * Settings → Appearance → Sidebar, and a hidden entry is not rendered at all; the
+ * meter then sits under the last entry that is still shown, so hiding the entry
+ * keeps the usage in view and only drops the menu row.
  */
 const ANCHOR_SELECTOR = '[data-testid="plugin-sidebar-usage-sidebar-usage"]';
+/** Every sidebar entry, Paseo's own and other plugins', renders as the same host row. */
+const NAV_ROW_SELECTOR = [
+  '[data-testid="sidebar-global-new-workspace"]',
+  '[data-testid="sidebar-sessions"]',
+  '[data-testid="sidebar-search"]',
+  '[data-testid="sidebar-schedules"]',
+  '[data-testid^="plugin-sidebar-"]',
+].join(",");
+
+/** The plugin's own row, or the lowest sidebar entry still shown when that row is hidden. */
+function findAnchor(): Element | null {
+  const own = document.querySelector(ANCHOR_SELECTOR);
+  if (own) {
+    return own;
+  }
+  const rows = document.querySelectorAll(NAV_ROW_SELECTOR);
+  return rows.length > 0 ? (rows[rows.length - 1] ?? null) : null;
+}
 const REFRESH_INTERVAL_MS = 60_000;
 /** Theme changes are not announced in the DOM, so the probed colours are polled. */
 const APPEARANCE_POLL_MS = 2_000;
@@ -147,7 +168,7 @@ type Appearance = { labelColor: string; trackColor: string; palette: Palette; ke
  * chosen by background luminance.
  */
 function readAppearance(): Appearance | null {
-  const anchor = document.querySelector(ANCHOR_SELECTOR);
+  const anchor = findAnchor();
   if (!anchor) {
     return null;
   }
@@ -234,6 +255,8 @@ export function startSidebarMeter(client: PluginClientContext): PluginCleanup {
   let locale: Locale = getLocale("web");
   let messages: Messages = messagesFor(locale);
   let node: HTMLElement | null = null;
+  /** The row the meter currently sits under; it changes when the plugin's own entry is hidden or shown. */
+  let anchoredTo: Element | null = null;
   let snapshot: UsageSnapshot | null = null;
   let selection: Selection = { keys: [], configured: false, columns: 1, composerPill: true };
   let groups: MeterGroup[] = [];
@@ -420,12 +443,12 @@ export function startSidebarMeter(client: PluginClientContext): PluginCleanup {
     if (stopped) {
       return;
     }
-    const anchor = document.querySelector(ANCHOR_SELECTOR);
+    const anchor = findAnchor();
     const parent = anchor?.parentElement;
     if (!anchor || !parent) {
       return;
     }
-    if (node && node.parentElement === parent) {
+    if (node && node.parentElement === parent && anchoredTo === anchor) {
       return;
     }
     node?.remove();
@@ -445,6 +468,7 @@ export function startSidebarMeter(client: PluginClientContext): PluginCleanup {
 
     parent.insertBefore(created, anchor.nextSibling);
     node = created;
+    anchoredTo = anchor;
     syncAppearance();
     paint();
   }
@@ -523,5 +547,6 @@ export function startSidebarMeter(client: PluginClientContext): PluginCleanup {
     observer.disconnect();
     node?.remove();
     node = null;
+    anchoredTo = null;
   };
 }

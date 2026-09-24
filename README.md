@@ -63,6 +63,12 @@ window, `1D` / `1M` are daily / monthly. The time turns red when the window is p
 before it resets. Hover a cell for the full label and the exact reset time. One column keeps the
 upstream look.
 
+### Set it up once, then hide the entry
+
+The panel is also under **Settings → Plan usage**, so pins and columns can be set there. Once they
+are, hide the **Plan usage** entry in **Settings → Appearance → Sidebar**: the meter stays, under the
+lowest sidebar entry that is still shown.
+
 ## Install
 
 Requires Paseo 0.8.0 or later. If the upstream plugin is installed, remove it first, since both
