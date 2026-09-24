@@ -51,12 +51,11 @@ function labelWindow(
   }
   const scoped = provider.windows.filter((candidate) => candidate.id.startsWith(`${id}_`));
   const modelName = model?.toLowerCase() ?? "";
-  const matchesModel = (label: string) =>
-    (label.split("·")[1] ?? "")
-      .toLowerCase()
-      .split(/[^a-z0-9]+/)
-      .some((word) => word.length >= 3 && word !== "and" && modelName.includes(word));
-  return scoped.find((candidate) => matchesModel(candidate.label)) ?? scoped[0];
+  const isGemini = modelName.includes("gemini");
+  const hit = isGemini
+    ? scoped.find((candidate) => candidate.id.includes("gemini"))
+    : scoped.find((candidate) => !candidate.id.includes("gemini"));
+  return hit ?? scoped[0];
 }
 
 function pillLabel(provider: ProviderUsage | undefined, model: string | null): string {

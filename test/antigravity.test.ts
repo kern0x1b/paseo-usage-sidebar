@@ -86,8 +86,8 @@ describe("listAntigravityUsage", () => {
       [
         ["five_hour_gemini", "Session · Gemini", 100],
         ["weekly_gemini", "Weekly · Gemini", (1 - 0.8324266) * 100],
-        ["five_hour_3p", "Session · Claude and GPT", null],
-        ["weekly_3p", "Weekly · Claude and GPT", (1 - 0.6657841) * 100],
+        ["five_hour_3p", "Session · Other models", null],
+        ["weekly_3p", "Weekly · Other models", (1 - 0.6657841) * 100],
       ],
     );
     assert.equal(card?.windows[0]?.tone, "danger");
@@ -140,6 +140,21 @@ describe("scoped 5-hour labels", () => {
     const window = { id: "five_hour_gemini", label: "Session · Gemini" };
     assert.equal(windowShortLabel(window), "5H Gemini");
     assert.equal(windowLabel(window, messagesFor("en")), "5-hour session (Gemini)");
-    assert.equal(windowShortLabel({ id: "weekly_3p", label: "Weekly · Claude and GPT" }), "1W Claude and GPT");
+    assert.equal(windowLabel(window, messagesFor("ru")), "5-часовой лимит (Gemini)");
+
+    const weeklyGemini = { id: "weekly_gemini", label: "Weekly · Gemini" };
+    assert.equal(windowShortLabel(weeklyGemini), "1W Gemini");
+    assert.equal(windowLabel(weeklyGemini, messagesFor("en")), "Weekly (Gemini)");
+    assert.equal(windowLabel(weeklyGemini, messagesFor("ru")), "Недельный лимит (Gemini)");
+
+    const other5h = { id: "five_hour_3p", label: "Session · Other models" };
+    assert.equal(windowShortLabel(other5h), "5H Other");
+    assert.equal(windowLabel(other5h, messagesFor("en")), "5-hour session (Other models)");
+    assert.equal(windowLabel(other5h, messagesFor("ru")), "5-часовой лимит (Остальные модели)");
+
+    const otherWeekly = { id: "weekly_3p", label: "Weekly · Other models" };
+    assert.equal(windowShortLabel(otherWeekly), "1W Other");
+    assert.equal(windowLabel(otherWeekly, messagesFor("en")), "Weekly (Other models)");
+    assert.equal(windowLabel(otherWeekly, messagesFor("ru")), "Недельный лимит (Остальные модели)");
   });
 });

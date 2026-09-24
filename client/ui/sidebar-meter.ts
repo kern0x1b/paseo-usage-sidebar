@@ -3,7 +3,7 @@ import type { PluginClientContext } from "@getpaseo/plugin/client";
 import { messagesFor, type Locale, type Messages } from "../../shared/i18n/messages";
 import { getLocale, subscribeLocale } from "../i18n/locale";
 import { publishSelection, subscribeSelection } from "../selection/store";
-import { pinnedRows, readSelection, type Selection } from "../../shared/selection/contract";
+import { pinnedRows, readSelection, writeSelection, type Selection } from "../../shared/selection/contract";
 import {
   clampPct,
   formatPct,
@@ -195,7 +195,7 @@ function readAppearance(): Appearance | null {
 }
 
 type MeterRow = { label: string; usedPct: number | null; tone: UsageTone; window: UsageWindow };
-type MeterGroup = { provider: string; rows: MeterRow[] };
+type MeterGroup = { providerId: string; provider: string; rows: MeterRow[] };
 
 type RowTiming = { text: string | null; atRisk: boolean; alternate: string | null };
 
@@ -234,10 +234,10 @@ function toGroups(snapshot: UsageSnapshot, selection: Selection, messages: Messa
       window: row.window,
     };
     const last = groups[groups.length - 1];
-    if (last && last.provider === row.providerName) {
+    if (last && last.providerId === row.providerId) {
       last.rows.push(entry);
     } else {
-      groups.push({ provider: row.providerName, rows: [entry] });
+      groups.push({ providerId: row.providerId, provider: row.providerName, rows: [entry] });
     }
   }
   return groups;
@@ -315,12 +315,78 @@ export function startSidebarMeter(client: PluginClientContext): PluginCleanup {
       // Rows are three lines tall now (label, bar, countdown), so they need more
       // air between them than within them or the block reads as one paragraph.
       const section = document.createElement("div");
-      section.style.cssText = "display:flex;flex-direction:column;gap:8px;";
+      section.style.cssText = "display:flex;flex-direction:column;gap:6px;";
 
-      const provider = document.createElement("div");
-      provider.textContent = group.provider;
-      provider.style.cssText = `color:${labelColor};font-size:10px;font-weight:600;letter-spacing:0.04em;opacity:0.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;`;
-      section.append(provider);
+      const isCollapsed = Boolean(selection.collapsedProviders?.includes(group.providerId));
+
+      const providerHeader = document.createElement("div");
+      providerHeader.style.cssText = [
+        "display:flex",
+        "align-items:center",
+        "justify-content:space-between",
+        "gap:6px",
+        `color:${labelColor}`,
+        "font-size:10px",
+        "font-weight:600",
+        "letter-spacing:0.04em",
+        "opacity:0.8",
+        "cursor:pointer",
+        "user-select:none",
+        "pointer-events:auto",
+        "padding:2px 0",
+        "border-radius:4px",
+      ].join(";");
+
+      providerHeader.title = isCollapsed
+        ? `${messages.expand} ${group.provider}`
+        : `${messages.collapse} ${group.provider}`;
+
+      providerHeader.addEventListener("mouseenter", () => {
+        providerHeader.style.opacity = "1";
+      });
+      providerHeader.addEventListener("mouseleave", () => {
+        providerHeader.style.opacity = "0.8";
+      });
+
+      const titleSpan = document.createElement("span");
+      titleSpan.textContent = group.provider;
+      titleSpan.style.cssText = "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;";
+      providerHeader.append(titleSpan);
+
+      const chevron = document.createElement("span");
+      chevron.style.cssText =
+        "display:flex;align-items:center;justify-content:center;width:12px;height:12px;flex-shrink:0;";
+      chevron.innerHTML = isCollapsed
+        ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>'
+        : '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+      providerHeader.append(chevron);
+
+      providerHeader.addEventListener("click", (event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        const current = selection.collapsedProviders ?? [];
+        const next = isCollapsed
+          ? current.filter((id) => id !== group.providerId)
+          : [...new Set([...current, group.providerId])];
+
+        selection = { ...selection, collapsedProviders: next };
+        paint();
+
+        void client.rpc(writeSelection, { collapsedProviders: next })
+          .then((saved) => {
+            publishSelection(saved as Selection);
+          })
+          .catch((err) => {
+            console.error("[usage-sidebar] Failed to save collapsed state from sidebar:", err);
+          });
+      });
+
+      section.append(providerHeader);
+
+      if (isCollapsed) {
+        node.append(section);
+        continue;
+      }
 
       // One column is the original stacked list; more put a provider's windows
       // side by side, so the 5-hour and weekly rows share one line. Never more

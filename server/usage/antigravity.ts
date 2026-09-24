@@ -102,9 +102,12 @@ export function accessTokenFrom(raw: string | null): string | null {
   }
 }
 
-/** "Claude and GPT models" → "Claude and GPT". */
-function scopeName(groupName: string): string {
-  return groupName.replace(/\s+models?$/i, "").trim() || groupName;
+/** Map quota group to scope name: Gemini → "Gemini", 3p/other → "Other models". */
+function scopeName(groupName: string, bucketId: string): string {
+  if (bucketId.startsWith("gemini") || /gemini/i.test(groupName)) {
+    return "Gemini";
+  }
+  return "Other models";
 }
 
 /** "gemini-5h" → "gemini", so the window ids stay stable across label changes. */
@@ -116,7 +119,7 @@ function toWindow(bucket: unknown, groupName: string): UsageWindow | null {
   if (!isRecord(bucket) || typeof bucket.bucketId !== "string") {
     return null;
   }
-  const scope = scopeName(groupName);
+  const scope = scopeName(groupName, bucket.bucketId);
   const period =
     bucket.window === "5h"
       ? {

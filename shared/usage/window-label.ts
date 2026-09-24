@@ -43,6 +43,18 @@ export function windowLabel(window: UsageWindow, messages: Messages): string {
   if (window.id === "weekly") {
     return messages.windowWeekly;
   }
+  if (window.id === "five_hour_gemini") {
+    return messages.windowFiveHourGemini;
+  }
+  if (window.id === "weekly_gemini") {
+    return messages.windowWeeklyGemini;
+  }
+  if (window.id === "five_hour_3p" || window.id === "five_hour_other" || window.id === "five_hour_other_models") {
+    return messages.windowFiveHourOther;
+  }
+  if (window.id === "weekly_3p" || window.id === "weekly_other" || window.id === "weekly_other_models") {
+    return messages.windowWeeklyOther;
+  }
   if (window.id.startsWith("five_hour_")) {
     const suffix = modelSuffix(window);
     return suffix ? messages.windowScoped(messages.windowFiveHour, suffix) : messages.windowFiveHour;
@@ -70,6 +82,18 @@ export function windowShortLabel(window: UsageWindow): string {
   }
   if (window.id === "weekly") {
     return "1W";
+  }
+  if (window.id === "five_hour_gemini") {
+    return "5H Gemini";
+  }
+  if (window.id === "weekly_gemini") {
+    return "1W Gemini";
+  }
+  if (window.id === "five_hour_3p" || window.id === "five_hour_other" || window.id === "five_hour_other_models") {
+    return "5H Other";
+  }
+  if (window.id === "weekly_3p" || window.id === "weekly_other" || window.id === "weekly_other_models") {
+    return "1W Other";
   }
   if (window.id.startsWith("five_hour_")) {
     const suffix = modelSuffix(window);
