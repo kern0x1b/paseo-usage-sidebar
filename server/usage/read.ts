@@ -1,5 +1,6 @@
 import type { PluginHandlerContext } from "@getpaseo/plugin/server";
 import { UsageSnapshotSchema, type UsageSnapshot } from "../../shared/usage/contract";
+import { listAntigravityUsage } from "./antigravity";
 import { listClaudeAccountUsage, withClaudeAccounts } from "./claude-accounts";
 import {
   errorMessage,
@@ -90,6 +91,7 @@ export async function readUsage(
   // Started before the daemon call so both run in parallel. It never rejects, so
   // nothing it does can be mistaken for the daemon link failing below.
   const claudeAccounts = listClaudeAccountUsage();
+  const antigravity = listAntigravityUsage();
   try {
     const fault = injectedFault();
     if (fault) {
@@ -99,8 +101,12 @@ export async function readUsage(
     // A reading got through, so whatever the last failures were, they were not
     // this session ending.
     linkFailure = INITIAL_LINK_FAILURE_STATE;
-    const providers = withClaudeAccounts(snapshot.providers, await claudeAccounts);
     const daemonProviderIds = new Set(snapshot.providers.map((provider) => provider.providerId));
+    const providers = [
+      ...withClaudeAccounts(snapshot.providers, await claudeAccounts),
+      // A card of the daemon's own for Antigravity, should it ever report one, wins.
+      ...(await antigravity).filter((provider) => !daemonProviderIds.has(provider.providerId)),
+    ];
     return {
       ...snapshot,
       providers,

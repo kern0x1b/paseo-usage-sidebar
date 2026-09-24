@@ -68,7 +68,7 @@ function defaultDeps(): ClaudeAccountDeps {
   };
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
@@ -200,7 +200,7 @@ function planLabel({
 }
 
 /** Thresholds match the daemon's `toneFromUsedPct`. */
-function toneFor(usedPct: number | null): UsageTone {
+export function toneFor(usedPct: number | null): UsageTone {
   if (usedPct === null) {
     return "default";
   }

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - The panel under **Settings → Plan usage**, for setting the pins and columns up once
+- An Antigravity card: 5-hour and weekly windows for Gemini and for Claude and GPT models
 
 ### Fixed
 - Hiding the Plan usage entry in Paseo's sidebar settings no longer hides the meter: it moves under

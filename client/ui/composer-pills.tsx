@@ -17,11 +17,12 @@ import { getSelection, subscribeSelection } from "../selection/store";
 import { AccountUsagePopover } from "./usage-surface";
 
 /**
- * A pill in the composer of every agent that runs on an extra Claude account.
+ * A pill in the composer of every agent that runs on an extra Claude account or
+ * on Antigravity.
  *
  * Paseo's context-window tooltip shows plan limits by looking the agent's
- * provider id up in the daemon's usage list, and an extra account is not in that
- * list, so its agents only ever get the context ring. The pill puts the same two
+ * provider id up in the daemon's usage list, and neither is in that list, so
+ * their agents only ever get the context ring. The pill puts the same two
  * numbers next to it; agents on the default account keep the host's tooltip and
  * get no pill.
  */
@@ -30,16 +31,41 @@ const AGENT_PAGE_LIMIT = 200;
 /** The two windows the label summarizes; the popover shows all of them. */
 const LABEL_WINDOW_IDS = ["five_hour", "weekly"] as const;
 
-type AgentPlacement = { workspaceId: string; provider: string };
+type AgentPlacement = { workspaceId: string; provider: string; model: string | null };
 type Pill = { providerId: string; registration: PluginButtonRegistration };
 
-function pillLabel(provider: ProviderUsage | undefined): string {
+/**
+ * The window a label slot shows. A provider whose limits are split by model family
+ * (Antigravity: `five_hour_gemini`, `weekly_3p`, ...) has no unscoped window, so the
+ * slot takes the scoped one whose family, as its label names it ("Weekly · Claude and
+ * GPT"), matches the agent's model, and the first one when none does.
+ */
+function labelWindow(
+  provider: ProviderUsage,
+  id: (typeof LABEL_WINDOW_IDS)[number],
+  model: string | null,
+): ProviderUsage["windows"][number] | undefined {
+  const exact = provider.windows.find((candidate) => candidate.id === id);
+  if (exact) {
+    return exact;
+  }
+  const scoped = provider.windows.filter((candidate) => candidate.id.startsWith(`${id}_`));
+  const modelName = model?.toLowerCase() ?? "";
+  const matchesModel = (label: string) =>
+    (label.split("·")[1] ?? "")
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .some((word) => word.length >= 3 && word !== "and" && modelName.includes(word));
+  return scoped.find((candidate) => matchesModel(candidate.label)) ?? scoped[0];
+}
+
+function pillLabel(provider: ProviderUsage | undefined, model: string | null): string {
   if (!provider || provider.status !== "available") {
     return "—";
   }
   const locale = getLocale("web");
   return LABEL_WINDOW_IDS.map((id) => {
-    const window = provider.windows.find((candidate) => candidate.id === id);
+    const window = labelWindow(provider, id, model);
     const usedPct = window ? windowUsedPct(window) : null;
     return usedPct === null ? "—" : formatPct(usedPct, locale);
   }).join(" · ");
@@ -107,7 +133,7 @@ export function startComposerPills(client: PluginClientContext): PluginCleanup {
       const provider = snapshot?.providers.find(
         (candidate) => candidate.providerId === agent.provider,
       );
-      const label = pillLabel(provider);
+      const label = pillLabel(provider, agent.model);
       const title = pillTitle(provider, agent.provider);
       const existing = pills.get(agentId);
       if (existing) {
@@ -132,6 +158,7 @@ export function startComposerPills(client: PluginClientContext): PluginCleanup {
   function track(agent: {
     id: string;
     provider: string;
+    model?: string | null;
     workspaceId?: string;
     archivedAt?: string | null;
   }): void {
@@ -139,6 +166,7 @@ export function startComposerPills(client: PluginClientContext): PluginCleanup {
       agents.set(agent.id, {
         workspaceId: agent.workspaceId,
         provider: agent.provider,
+        model: agent.model ?? null,
       });
     } else {
       agents.delete(agent.id);

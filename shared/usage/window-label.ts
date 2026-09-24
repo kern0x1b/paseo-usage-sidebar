@@ -8,6 +8,7 @@ import type { UsageWindow } from "./contract";
  * instead — which also means every label follows the app's language setting:
  *
  *   five_hour            → the 5-hour rolling window (labelled "Session")
+ *   five_hour_<scope>    → a scoped 5-hour window, e.g. five_hour_gemini (Antigravity)
  *   weekly               → the 7-day window
  *   weekly_<model>       → a model-scoped 7-day window, e.g. weekly_model_fable
  *   daily / monthly      → other providers' fixed windows
@@ -25,7 +26,10 @@ function modelSuffix(window: UsageWindow): string | null {
       return suffix;
     }
   }
-  const fromId = window.id.replace(/^weekly_(model_)?/, "").replace(/[_-]+/g, " ").trim();
+  const fromId = window.id
+    .replace(/^(weekly|five_hour)_(model_)?/, "")
+    .replace(/[_-]+/g, " ")
+    .trim();
   if (!fromId) {
     return null;
   }
@@ -38,6 +42,10 @@ export function windowLabel(window: UsageWindow, messages: Messages): string {
   }
   if (window.id === "weekly") {
     return messages.windowWeekly;
+  }
+  if (window.id.startsWith("five_hour_")) {
+    const suffix = modelSuffix(window);
+    return suffix ? messages.windowScoped(messages.windowFiveHour, suffix) : messages.windowFiveHour;
   }
   if (window.id.startsWith("weekly_")) {
     const suffix = modelSuffix(window);
@@ -53,7 +61,7 @@ export function windowLabel(window: UsageWindow, messages: Messages): string {
 }
 
 /**
- * A code short enough for a meter column: `5H`, `1W`, `1W Fable`, `1D`, `1M`.
+ * A code short enough for a meter column: `5H`, `5H Gemini`, `1W`, `1W Fable`, `1D`, `1M`.
  * Language-neutral on purpose; the full localized label stays in the tooltip.
  */
 export function windowShortLabel(window: UsageWindow): string {
@@ -62,6 +70,10 @@ export function windowShortLabel(window: UsageWindow): string {
   }
   if (window.id === "weekly") {
     return "1W";
+  }
+  if (window.id.startsWith("five_hour_")) {
+    const suffix = modelSuffix(window);
+    return suffix ? `5H ${suffix}` : "5H";
   }
   if (window.id.startsWith("weekly_")) {
     const suffix = modelSuffix(window);

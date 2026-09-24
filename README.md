@@ -44,11 +44,19 @@ Every enabled provider in `~/.paseo/config.json` that extends `claude` and sets 
   a new provider shows up without a plugin reload.
 - A failing account becomes an error card; it never hides the daemon's providers.
 
+### Antigravity
+
+With the `antigravity-cli` plugin enabled, Antigravity gets a card too: a 5-hour and a weekly window
+for each model group it reports (Gemini; Claude and GPT), read from the same quota call `agy /usage`
+makes. The token is the one `agy` keeps in the macOS Keychain (`gemini` / `antigravity`), read only;
+`agy` refreshes it. Not available on other platforms.
+
 ### Composer pill
 
 Paseo's context tooltip finds plan limits by the agent's provider id in the daemon's list, where an
 extra account never appears. So agents on an extra account get a pill above the input instead:
-`27% · 23%` means the 5-hour and weekly windows. Clicking it opens the account's full card. Agents
+`27% · 23%` means the 5-hour and weekly windows; on Antigravity, those of the group the agent's
+model belongs to. Clicking it opens the account's full card. Agents
 on the default account keep the native tooltip and get no pill. Turn it off with **Show limits in the message box**
 under **Sidebar order** in the panel.
 
