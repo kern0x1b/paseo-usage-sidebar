@@ -62,6 +62,8 @@ export type Messages = {
   reorder: string;
   /** The pin list could not be written, so the arrangement on screen was rolled back. */
   pinSaveFailed: string;
+  collapse: string;
+  expand: string;
 };
 
 const en: Messages = {
@@ -103,6 +105,8 @@ const en: Messages = {
   moveDown: "Move down",
   reorder: "Drag to reorder",
   pinSaveFailed: "Could not save the sidebar arrangement. Your change was undone.",
+  collapse: "Collapse",
+  expand: "Expand",
 };
 
 const zhCN: Messages = {
@@ -146,6 +150,8 @@ const zhCN: Messages = {
   moveDown: "下移",
   reorder: "拖拽排序",
   pinSaveFailed: "无法保存侧边栏排列，已撤销此次更改。",
+  collapse: "折叠",
+  expand: "展开",
 };
 
 const ja: Messages = {
@@ -187,6 +193,8 @@ const ja: Messages = {
   moveDown: "下へ",
   reorder: "ドラッグして並べ替え",
   pinSaveFailed: "サイドバーの配置を保存できませんでした。変更は取り消されました。",
+  collapse: "折りたたむ",
+  expand: "展開",
 };
 
 const ko: Messages = {
@@ -228,6 +236,8 @@ const ko: Messages = {
   moveDown: "아래로",
   reorder: "끌어서 순서 변경",
   pinSaveFailed: "사이드바 배치를 저장하지 못했습니다. 변경 사항이 취소되었습니다.",
+  collapse: "접기",
+  expand: "펼치기",
 };
 
 const es: Messages = {
@@ -269,6 +279,8 @@ const es: Messages = {
   moveDown: "Bajar",
   reorder: "Arrastra para reordenar",
   pinSaveFailed: "No se pudo guardar la disposición de la barra lateral. Se deshizo el cambio.",
+  collapse: "Contraer",
+  expand: "Expandir",
 };
 
 const fr: Messages = {
@@ -310,6 +322,8 @@ const fr: Messages = {
   moveDown: "Descendre",
   reorder: "Glisser pour réordonner",
   pinSaveFailed: "Impossible d'enregistrer la disposition de la barre latérale. La modification a été annulée.",
+  collapse: "Réduire",
+  expand: "Développer",
 };
 
 const ptBR: Messages = {
@@ -351,6 +365,8 @@ const ptBR: Messages = {
   moveDown: "Mover para baixo",
   reorder: "Arraste para reordenar",
   pinSaveFailed: "Não foi possível salvar a disposição da barra lateral. A alteração foi desfeita.",
+  collapse: "Recolher",
+  expand: "Expandir",
 };
 
 const ru: Messages = {
@@ -392,6 +408,8 @@ const ru: Messages = {
   moveDown: "Вниз",
   reorder: "Перетащите, чтобы изменить порядок",
   pinSaveFailed: "Не удалось сохранить расположение на боковой панели. Изменение отменено.",
+  collapse: "Свернуть",
+  expand: "Развернуть",
 };
 
 const ar: Messages = {
@@ -433,6 +451,8 @@ const ar: Messages = {
   moveDown: "تحريك لأسفل",
   reorder: "اسحب لإعادة الترتيب",
   pinSaveFailed: "تعذّر حفظ ترتيب الشريط الجانبي. تم التراجع عن التغيير.",
+  collapse: "طي",
+  expand: "توسيع",
 };
 
 export const MESSAGES: Record<Locale, Messages> = {

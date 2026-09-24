@@ -17,6 +17,8 @@ export const SelectionSchema = z.object({
   columns: z.number().int().min(1).max(3).default(1),
   /** Whether agents on an extra Claude account get the usage pill in their composer. */
   composerPill: z.boolean().default(true),
+  /** Provider IDs whose cards are collapsed on the usage surface. */
+  collapsedProviders: z.array(z.string()).default([]),
 });
 
 export const METER_COLUMN_OPTIONS = [1, 2, 3] as const;
@@ -36,6 +38,7 @@ export const writeSelection = defineRpc({
     keys: z.array(z.string()).optional(),
     columns: z.number().int().min(1).max(3).optional(),
     composerPill: z.boolean().optional(),
+    collapsedProviders: z.array(z.string()).optional(),
   }),
   output: SelectionSchema,
 });

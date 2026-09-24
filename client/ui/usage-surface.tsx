@@ -193,7 +193,14 @@ function useStyles(theme: PluginTheme, compact: boolean, rtl: boolean) {
         divider: { height: 1, backgroundColor: theme.colors.border },
 
         provider: { gap: SPACE[4], paddingVertical: SPACE[4], paddingHorizontal: SPACE[4] },
+        providerCollapsed: { paddingVertical: SPACE[3], paddingHorizontal: SPACE[4] },
         providerHeader: { flexDirection: row, alignItems: "center", gap: SPACE[2] },
+        providerHeaderPressable: {
+          borderRadius: 6,
+          paddingVertical: 2,
+        },
+        providerHeaderPressed: { opacity: 0.7 },
+        collapseIconSlot: { width: 18, height: 18, alignItems: "center", justifyContent: "center" },
         popover: { width: 320 },
         providerName: { flexShrink: 1, color: theme.colors.foreground, fontSize: FONT.base, writingDirection, textAlign },
         headerSpacer: { flex: 1 },
@@ -695,6 +702,8 @@ function ProviderBlock({
   messages,
   pinnedKeys,
   onTogglePin,
+  collapsed = false,
+  onToggleCollapse,
 }: {
   provider: ProviderUsage;
   /** The snapshot is still rendered, but it is not being refreshed any more. */
@@ -705,6 +714,8 @@ function ProviderBlock({
   messages: Messages;
   pinnedKeys: ReadonlySet<string>;
   onTogglePin?: (key: string) => void;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }) {
   const status = statusLabel(provider.status, messages);
   /**
@@ -721,32 +732,71 @@ function ProviderBlock({
 
   const hasBars = provider.windows.length > 0 || provider.balances.length > 0;
 
+  const headerContent = (
+    <>
+      <Text style={styles.providerName} numberOfLines={1}>
+        {provider.displayName}
+      </Text>
+      {provider.planLabel ? (
+        <View style={styles.planBadge}>
+          <Text style={styles.planBadgeLabel} numberOfLines={1}>
+            {provider.planLabel}
+          </Text>
+        </View>
+      ) : null}
+      <View style={styles.headerSpacer} />
+      {status ? (
+        <View style={styles.statusRow}>
+          <View
+            style={[
+              styles.statusDot,
+              provider.status === "error" ? styles.statusDotError : null,
+            ]}
+          />
+          <Text style={styles.statusLabel}>{status}</Text>
+        </View>
+      ) : null}
+      {onToggleCollapse ? (
+        <View style={styles.collapseIconSlot}>
+          <Icon
+            name={collapsed ? (isRtl(locale) ? "ChevronLeft" : "ChevronRight") : "ChevronDown"}
+            size={14}
+            color={theme.colors.foregroundMuted}
+          />
+        </View>
+      ) : null}
+    </>
+  );
+
+  const header = onToggleCollapse ? (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={
+        collapsed
+          ? `${messages.expand} ${provider.displayName}`
+          : `${messages.collapse} ${provider.displayName}`
+      }
+      accessibilityState={{ expanded: !collapsed }}
+      onPress={onToggleCollapse}
+      style={({ pressed }) => [
+        styles.providerHeader,
+        styles.providerHeaderPressable,
+        pressed ? styles.providerHeaderPressed : null,
+      ]}
+    >
+      {headerContent}
+    </Pressable>
+  ) : (
+    <View style={styles.providerHeader}>{headerContent}</View>
+  );
+
+  if (collapsed) {
+    return <View style={styles.providerCollapsed}>{header}</View>;
+  }
+
   return (
     <View style={styles.provider}>
-      <View style={styles.providerHeader}>
-        <Text style={styles.providerName} numberOfLines={1}>
-          {provider.displayName}
-        </Text>
-        {provider.planLabel ? (
-          <View style={styles.planBadge}>
-            <Text style={styles.planBadgeLabel} numberOfLines={1}>
-              {provider.planLabel}
-            </Text>
-          </View>
-        ) : null}
-        <View style={styles.headerSpacer} />
-        {status ? (
-          <View style={styles.statusRow}>
-            <View
-              style={[
-                styles.statusDot,
-                provider.status === "error" ? styles.statusDotError : null,
-              ]}
-            />
-            <Text style={styles.statusLabel}>{status}</Text>
-          </View>
-        ) : null}
-      </View>
+      {header}
 
       {provider.error ? (
         <Text style={styles.providerError} numberOfLines={3}>
@@ -914,13 +964,30 @@ export function UsageSurface({ theme, layout }: PluginSurfaceProps) {
 
   const columns = selectionQuery.data?.columns ?? 1;
   const composerPill = selectionQuery.data?.composerPill ?? true;
+  const persistedCollapsed = selectionQuery.data?.collapsedProviders ?? [];
+  const [localCollapsed, setLocalCollapsed] = useState<string[] | null>(null);
+  const collapsedList = localCollapsed ?? persistedCollapsed;
+  const collapsedSet = useMemo(() => new Set(collapsedList), [collapsedList]);
+
   const saveLayout = useMutation({
-    mutationFn: (next: { columns?: number; composerPill?: boolean }) => persistSelection(next),
+    mutationFn: (next: { columns?: number; composerPill?: boolean; collapsedProviders?: string[] }) =>
+      persistSelection(next),
     onSuccess: (selection) => {
       queryClient.setQueryData(["usage-sidebar", "selection"], selection);
       publishSelection(selection);
     },
+    onError: () => {
+      setLocalCollapsed(null);
+    },
   });
+
+  const toggleCollapse = (providerId: string) => {
+    const next = collapsedSet.has(providerId)
+      ? collapsedList.filter((id) => id !== providerId)
+      : [...collapsedList, providerId];
+    setLocalCollapsed(next);
+    saveLayout.mutate({ collapsedProviders: next });
+  };
 
   const pillShown = saveLayout.isPending ? (saveLayout.variables.composerPill ?? composerPill) : composerPill;
 
@@ -1059,6 +1126,8 @@ export function UsageSurface({ theme, layout }: PluginSurfaceProps) {
                   messages={messages}
                   pinnedKeys={pinnedKeys}
                   onTogglePin={togglePin}
+                  collapsed={collapsedSet.has(provider.providerId)}
+                  onToggleCollapse={() => toggleCollapse(provider.providerId)}
                 />
               </Fragment>
             ))}

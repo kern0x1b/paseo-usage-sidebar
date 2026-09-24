@@ -13,7 +13,7 @@ import { SelectionSchema, type Selection } from "../../shared/selection/contract
  * daemon-owned files, and replaced atomically so a crash mid-write cannot leave
  * a truncated file behind.
  */
-const EMPTY: Selection = { keys: [], configured: false, columns: 1, composerPill: true };
+const EMPTY: Selection = { keys: [], configured: false, columns: 1, composerPill: true, collapsedProviders: [] };
 
 function stateFile(): string {
   const base = process.env.XDG_STATE_HOME?.trim() || join(homedir(), ".local", "state");
@@ -33,10 +33,12 @@ export function writeSelectionState({
   keys,
   columns,
   composerPill,
+  collapsedProviders,
 }: {
   keys?: string[];
   columns?: number;
   composerPill?: boolean;
+  collapsedProviders?: string[];
 }): Selection {
   const current = readSelectionState();
   // A write without keys must not mark the pins as configured: that would swap the
@@ -48,6 +50,10 @@ export function writeSelectionState({
       : {}),
     columns: columns ?? current.columns,
     composerPill: composerPill ?? current.composerPill,
+    collapsedProviders:
+      collapsedProviders !== undefined
+        ? [...new Set(collapsedProviders.filter((id) => typeof id === "string" && id.length > 0))]
+        : (current.collapsedProviders ?? []),
   };
   const path = stateFile();
   try {
@@ -64,7 +70,8 @@ export function writeSelectionState({
   }
   console.log(
     `[usage-sidebar] Pinned rows saved: ${next.keys.join(", ") || "(none)"}, ${next.columns} column(s), ` +
-      `composer pill ${next.composerPill ? "on" : "off"}`,
+      `composer pill ${next.composerPill ? "on" : "off"}, ` +
+      `collapsed: ${next.collapsedProviders.join(", ") || "(none)"}`,
   );
   return next;
 }

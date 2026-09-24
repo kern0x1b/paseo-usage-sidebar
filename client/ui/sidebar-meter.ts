@@ -258,7 +258,7 @@ export function startSidebarMeter(client: PluginClientContext): PluginCleanup {
   /** The row the meter currently sits under; it changes when the plugin's own entry is hidden or shown. */
   let anchoredTo: Element | null = null;
   let snapshot: UsageSnapshot | null = null;
-  let selection: Selection = { keys: [], configured: false, columns: 1, composerPill: true };
+  let selection: Selection = { keys: [], configured: false, columns: 1, composerPill: true, collapsedProviders: [] };
   let groups: MeterGroup[] = [];
   let stopped = false;
   let appearance: Appearance | null = null;

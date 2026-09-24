@@ -16,11 +16,11 @@ beforeEach(() => {
 
 describe("writeSelectionState", () => {
   it("defaults to one column", () => {
-    assert.deepEqual(readSelectionState(), { keys: [], configured: false, columns: 1, composerPill: true });
+    assert.deepEqual(readSelectionState(), { keys: [], configured: false, columns: 1, composerPill: true, collapsedProviders: [] });
   });
 
   it("saves columns alone without marking the pins as configured", () => {
-    assert.deepEqual(writeSelectionState({ columns: 2 }), { keys: [], configured: false, columns: 2, composerPill: true });
+    assert.deepEqual(writeSelectionState({ columns: 2 }), { keys: [], configured: false, columns: 2, composerPill: true, collapsedProviders: [] });
   });
 
   it("keeps the saved columns when only the pins change, and the pins when only columns change", () => {
@@ -30,12 +30,14 @@ describe("writeSelectionState", () => {
       configured: true,
       columns: 3,
       composerPill: true,
+      collapsedProviders: [],
     });
     assert.deepEqual(writeSelectionState({ columns: 2 }), {
       keys: ["claude:weekly"],
       configured: true,
       columns: 2,
       composerPill: true,
+      collapsedProviders: [],
     });
     assert.deepEqual(readSelectionState().columns, 2);
   });
@@ -47,6 +49,22 @@ describe("writeSelectionState", () => {
       configured: true,
       columns: 2,
       composerPill: false,
+      collapsedProviders: [],
     });
+  });
+
+  it("saves collapsed providers and preserves them across pin and column updates", () => {
+    writeSelectionState({ collapsedProviders: ["claude-work", "antigravity-cli"] });
+    assert.deepEqual(readSelectionState().collapsedProviders, ["claude-work", "antigravity-cli"]);
+
+    writeSelectionState({ columns: 3 });
+    assert.deepEqual(readSelectionState().collapsedProviders, ["claude-work", "antigravity-cli"]);
+
+    writeSelectionState({ keys: ["claude:weekly"] });
+    assert.deepEqual(readSelectionState().collapsedProviders, ["claude-work", "antigravity-cli"]);
+
+    // Deduplicates and filters empty
+    writeSelectionState({ collapsedProviders: ["claude-work", "claude-work", ""] });
+    assert.deepEqual(readSelectionState().collapsedProviders, ["claude-work"]);
   });
 });
