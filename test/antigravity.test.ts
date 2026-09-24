@@ -136,24 +136,24 @@ describe("listAntigravityUsage", () => {
 });
 
 describe("scoped 5-hour labels", () => {
-  it("names the family next to the period", () => {
+  it("codes rolling windows compactly without model suffix and localizes full labels", () => {
     const window = { id: "five_hour_gemini", label: "Session · Gemini" };
-    assert.equal(windowShortLabel(window), "5H Gemini");
+    assert.equal(windowShortLabel(window), "5H");
     assert.equal(windowLabel(window, messagesFor("en")), "5-hour session (Gemini)");
     assert.equal(windowLabel(window, messagesFor("ru")), "5-часовой лимит (Gemini)");
 
     const weeklyGemini = { id: "weekly_gemini", label: "Weekly · Gemini" };
-    assert.equal(windowShortLabel(weeklyGemini), "1W Gemini");
+    assert.equal(windowShortLabel(weeklyGemini), "1W");
     assert.equal(windowLabel(weeklyGemini, messagesFor("en")), "Weekly (Gemini)");
     assert.equal(windowLabel(weeklyGemini, messagesFor("ru")), "Недельный лимит (Gemini)");
 
     const other5h = { id: "five_hour_3p", label: "Session · Other models" };
-    assert.equal(windowShortLabel(other5h), "5H Other");
+    assert.equal(windowShortLabel(other5h), "5H");
     assert.equal(windowLabel(other5h, messagesFor("en")), "5-hour session (Other models)");
     assert.equal(windowLabel(other5h, messagesFor("ru")), "5-часовой лимит (Остальные модели)");
 
     const otherWeekly = { id: "weekly_3p", label: "Weekly · Other models" };
-    assert.equal(windowShortLabel(otherWeekly), "1W Other");
+    assert.equal(windowShortLabel(otherWeekly), "1W");
     assert.equal(windowLabel(otherWeekly, messagesFor("en")), "Weekly (Other models)");
     assert.equal(windowLabel(otherWeekly, messagesFor("ru")), "Недельный лимит (Остальные модели)");
   });

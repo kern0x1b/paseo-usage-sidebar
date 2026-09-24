@@ -73,40 +73,21 @@ export function windowLabel(window: UsageWindow, messages: Messages): string {
 }
 
 /**
- * A code short enough for a meter column: `5H`, `5H Gemini`, `1W`, `1W Fable`, `1D`, `1M`.
- * Language-neutral on purpose; the full localized label stays in the tooltip.
+ * A code short enough for a meter column: `5H`, `1W`, `1D`, `1M`.
+ * Pure period code — the model family is shown in the group subheader, never on
+ * the limit line, so the percentage and reset countdown have full room.
  */
 export function windowShortLabel(window: UsageWindow): string {
-  if (window.id === "five_hour") {
+  if (window.id === "five_hour" || window.id.startsWith("five_hour_")) {
     return "5H";
   }
-  if (window.id === "weekly") {
+  if (window.id === "weekly" || window.id.startsWith("weekly_")) {
     return "1W";
   }
-  if (window.id === "five_hour_gemini") {
-    return "5H Gemini";
-  }
-  if (window.id === "weekly_gemini") {
-    return "1W Gemini";
-  }
-  if (window.id === "five_hour_3p" || window.id === "five_hour_other" || window.id === "five_hour_other_models") {
-    return "5H Other";
-  }
-  if (window.id === "weekly_3p" || window.id === "weekly_other" || window.id === "weekly_other_models") {
-    return "1W Other";
-  }
-  if (window.id.startsWith("five_hour_")) {
-    const suffix = modelSuffix(window);
-    return suffix ? `5H ${suffix}` : "5H";
-  }
-  if (window.id.startsWith("weekly_")) {
-    const suffix = modelSuffix(window);
-    return suffix ? `1W ${suffix}` : "1W";
-  }
-  if (window.id === "daily") {
+  if (window.id === "daily" || window.id.startsWith("daily_")) {
     return "1D";
   }
-  if (window.id === "monthly") {
+  if (window.id === "monthly" || window.id.startsWith("monthly_")) {
     return "1M";
   }
   return window.label;

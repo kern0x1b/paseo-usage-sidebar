@@ -52,6 +52,7 @@ export type Messages = {
   windowWeeklyGemini: string;
   windowFiveHourOther: string;
   windowWeeklyOther: string;
+  familyOtherModels: string;
   /** A window scoped to one model, e.g. `Weekly (Fable)`. */
   windowScoped: (base: string, scope: string) => string;
   showInSidebar: string;
@@ -102,6 +103,7 @@ const en: Messages = {
   windowWeeklyGemini: "Weekly (Gemini)",
   windowFiveHourOther: "5-hour session (Other models)",
   windowWeeklyOther: "Weekly (Other models)",
+  familyOtherModels: "Other models",
   windowScoped: (base, scope) => `${base} (${scope})`,
   showInSidebar: "Show in sidebar",
   meterColumns: "Columns",
@@ -149,6 +151,7 @@ const zhCN: Messages = {
   windowWeeklyGemini: "每周限额 · Gemini",
   windowFiveHourOther: "5小时限额 · 其他模型",
   windowWeeklyOther: "每周限额 · 其他模型",
+  familyOtherModels: "其他模型",
   // Latin model names inside full-width parentheses read as a foreign body in a
   // Chinese line; the interpunct is what Chinese UI copy uses to qualify a term.
   windowScoped: (base, scope) => `${base} · ${scope}`,
@@ -198,6 +201,7 @@ const ja: Messages = {
   windowWeeklyGemini: "週間制限（Gemini）",
   windowFiveHourOther: "5時間制限（その他のモデル）",
   windowWeeklyOther: "週間制限（その他のモデル）",
+  familyOtherModels: "その他のモデル",
   windowScoped: (base, scope) => `${base}（${scope}）`,
   showInSidebar: "サイドバーに表示",
   meterColumns: "列数",
@@ -245,6 +249,7 @@ const ko: Messages = {
   windowWeeklyGemini: "주간 한도 (Gemini)",
   windowFiveHourOther: "5시간 한도 (기타 모델)",
   windowWeeklyOther: "주간 한도 (기타 모델)",
+  familyOtherModels: "기타 모델",
   windowScoped: (base, scope) => `${base} (${scope})`,
   showInSidebar: "사이드바에 표시",
   meterColumns: "열 수",
@@ -292,6 +297,7 @@ const es: Messages = {
   windowWeeklyGemini: "Semanal (Gemini)",
   windowFiveHourOther: "Sesión de 5 h (Otros modelos)",
   windowWeeklyOther: "Semanal (Otros modelos)",
+  familyOtherModels: "Otros modelos",
   windowScoped: (base, scope) => `${base} (${scope})`,
   showInSidebar: "Mostrar en la barra lateral",
   meterColumns: "Columnas",
@@ -339,6 +345,7 @@ const fr: Messages = {
   windowWeeklyGemini: "Hebdomadaire (Gemini)",
   windowFiveHourOther: "Session de 5 h (Autres modèles)",
   windowWeeklyOther: "Hebdomadaire (Autres modèles)",
+  familyOtherModels: "Autres modèles",
   windowScoped: (base, scope) => `${base} (${scope})`,
   showInSidebar: "Afficher dans la barre latérale",
   meterColumns: "Colonnes",
@@ -386,6 +393,7 @@ const ptBR: Messages = {
   windowWeeklyGemini: "Semanal (Gemini)",
   windowFiveHourOther: "Sessão de 5 h (Outros modelos)",
   windowWeeklyOther: "Semanal (Outros modelos)",
+  familyOtherModels: "Outros modelos",
   windowScoped: (base, scope) => `${base} (${scope})`,
   showInSidebar: "Mostrar na barra lateral",
   meterColumns: "Colunas",
@@ -433,6 +441,7 @@ const ru: Messages = {
   windowWeeklyGemini: "Недельный лимит (Gemini)",
   windowFiveHourOther: "5-часовой лимит (Остальные модели)",
   windowWeeklyOther: "Недельный лимит (Остальные модели)",
+  familyOtherModels: "Остальные модели",
   windowScoped: (base, scope) => `${base} (${scope})`,
   showInSidebar: "Показать на боковой панели",
   meterColumns: "Колонки",
@@ -480,6 +489,7 @@ const ar: Messages = {
   windowWeeklyGemini: "أسبوعي (Gemini)",
   windowFiveHourOther: "جلسة 5 ساعات (نماذج أخرى)",
   windowWeeklyOther: "أسبوعي (نماذج أخرى)",
+  familyOtherModels: "نماذج أخرى",
   windowScoped: (base, scope) => `${base} (${scope})`,
   showInSidebar: "إظهار في الشريط الجانبي",
   meterColumns: "الأعمدة",

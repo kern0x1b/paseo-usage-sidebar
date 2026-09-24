@@ -218,6 +218,27 @@ function rowTiming(row: MeterRow, messages: Messages, locale: Locale): RowTiming
   };
 }
 
+function familyOf(window: UsageWindow, messages: Messages): string | null {
+  const id = window.id.toLowerCase();
+  if (id.includes("gemini")) {
+    return "Gemini";
+  }
+  if (id.includes("3p") || id.includes("other") || id.includes("claude_and_gpt")) {
+    return messages.familyOtherModels;
+  }
+  const separator = window.label.indexOf("·");
+  if (separator >= 0) {
+    const suffix = window.label.slice(separator + 1).trim();
+    if (/gemini/i.test(suffix)) {
+      return "Gemini";
+    }
+    if (/other/i.test(suffix) || /3p/i.test(suffix)) {
+      return messages.familyOtherModels;
+    }
+  }
+  return null;
+}
+
 /**
  * Group pinned rows by provider, keeping the order Paseo reports. The provider
  * name is always shown: a bare "Weekly" is ambiguous as soon as a second
@@ -350,12 +371,13 @@ export function startSidebarMeter(client: PluginClientContext): PluginCleanup {
 
       const titleSpan = document.createElement("span");
       titleSpan.textContent = group.provider;
-      titleSpan.style.cssText = "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;";
+      titleSpan.style.cssText =
+        "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;pointer-events:none;";
       providerHeader.append(titleSpan);
 
       const chevron = document.createElement("span");
       chevron.style.cssText =
-        "display:flex;align-items:center;justify-content:center;width:12px;height:12px;flex-shrink:0;";
+        "display:flex;align-items:center;justify-content:center;width:12px;height:12px;flex-shrink:0;pointer-events:none;";
       chevron.innerHTML = isCollapsed
         ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>'
         : '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
@@ -388,67 +410,95 @@ export function startSidebarMeter(client: PluginClientContext): PluginCleanup {
         continue;
       }
 
-      // One column is the original stacked list; more put a provider's windows
-      // side by side, so the 5-hour and weekly rows share one line. Never more
-      // columns than the provider has rows: a spare one is just a blank strip
-      // that squeezes the cells that do exist.
-      const columns = Math.min(selection.columns, group.rows.length);
-      const grid = document.createElement("div");
-      grid.style.cssText = `display:grid;grid-template-columns:repeat(${columns}, minmax(0, 1fr));column-gap:12px;row-gap:8px;`;
-      section.append(grid);
-
+      // Group rows by model family if present (e.g. Gemini, Other models).
+      // Providers without families have a single entry with family: null.
+      const familyGroups: { family: string | null; rows: MeterRow[] }[] = [];
       for (const row of group.rows) {
-        const item = document.createElement("div");
-        item.style.cssText = "display:flex;flex-direction:column;gap:3px;";
+        const family = familyOf(row.window, messages);
+        const last = familyGroups[familyGroups.length - 1];
+        if (last && last.family === family) {
+          last.rows.push(row);
+        } else {
+          familyGroups.push({ family, rows: [row] });
+        }
+      }
 
-        if (selection.columns > 1) {
-          appendCompactCell(item, row, labelColor, trackColor, palette);
+      for (const familyGroup of familyGroups) {
+        if (familyGroup.family) {
+          const subhead = document.createElement("div");
+          subhead.textContent = familyGroup.family;
+          subhead.style.cssText = `color:${labelColor};font-size:9px;font-weight:600;letter-spacing:0.04em;opacity:0.65;margin-top:2px;`;
+          section.append(subhead);
+        }
+
+        const columns = Math.min(selection.columns, familyGroup.rows.length);
+        const grid = document.createElement("div");
+        grid.style.cssText = `display:grid;grid-template-columns:repeat(${columns}, minmax(0, 1fr));column-gap:12px;row-gap:8px;`;
+        section.append(grid);
+
+        for (const row of familyGroup.rows) {
+          const item = document.createElement("div");
+          item.style.cssText = "display:flex;flex-direction:column;gap:3px;";
+
+          if (selection.columns > 1) {
+            appendCompactCell(item, row, labelColor, trackColor, palette);
+            grid.append(item);
+            continue;
+          }
+
+          const head = document.createElement("div");
+          head.style.cssText = "display:flex;justify-content:space-between;gap:8px;align-items:baseline;";
+
+          const label = document.createElement("span");
+          label.textContent = familyGroup.family
+            ? (row.window.id.startsWith("five_hour")
+                ? messages.windowFiveHour
+                : row.window.id.startsWith("weekly")
+                  ? messages.windowWeekly
+                  : row.window.id.startsWith("daily")
+                    ? messages.windowDaily
+                    : row.window.id.startsWith("monthly")
+                      ? messages.windowMonthly
+                      : row.label)
+            : row.label;
+          label.style.cssText = `color:${labelColor};font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;`;
+
+          const value = document.createElement("span");
+          value.textContent = row.usedPct != null ? formatPct(row.usedPct, locale) : "\u2014";
+          value.style.cssText = `color:${labelColor};font-size:11px;font-weight:500;flex-shrink:0;`;
+
+          head.append(label, value);
+
+          const track = document.createElement("div");
+          track.style.cssText = `height:3px;border-radius:2px;background:${trackColor};overflow:hidden;`;
+
+          const fill = document.createElement("div");
+          fill.style.cssText = `height:3px;border-radius:2px;width:${clampPct(row.usedPct ?? 0)}%;background:${palette[row.tone]};`;
+
+          track.append(fill);
+          item.append(head, track);
+
+          // A percentage alone cannot be acted on: 90% used is fine with a reset an
+          // hour out and a problem with three days to go.
+          const timing = rowTiming(row, messages, locale);
+          if (timing.text) {
+            const foot = document.createElement("div");
+            foot.textContent = timing.text;
+            // Same size as the label and barely dimmed: this is the number that
+            // says whether the percentage above it matters, so it has to survive a
+            // glance at a dark sidebar rather than fade into it.
+            foot.style.cssText = `color:${timing.atRisk ? palette.danger : labelColor};font-size:11px;opacity:${timing.atRisk ? "1" : "0.85"};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;`;
+            item.append(foot);
+          }
+          if (timing.alternate) {
+            item.title = `${row.label} · ${timing.alternate}`;
+            // The meter as a whole is click-through; a row with a tooltip has to opt
+            // back in, because pointer-events:none also suppresses hover.
+            item.style.pointerEvents = "auto";
+          }
+
           grid.append(item);
-          continue;
         }
-
-        const head = document.createElement("div");
-        head.style.cssText = "display:flex;justify-content:space-between;gap:8px;align-items:baseline;";
-
-        const label = document.createElement("span");
-        label.textContent = row.label;
-        label.style.cssText = `color:${labelColor};font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;`;
-
-        const value = document.createElement("span");
-        value.textContent = row.usedPct != null ? formatPct(row.usedPct, locale) : "\u2014";
-        value.style.cssText = `color:${labelColor};font-size:11px;font-weight:500;flex-shrink:0;`;
-
-        head.append(label, value);
-
-        const track = document.createElement("div");
-        track.style.cssText = `height:3px;border-radius:2px;background:${trackColor};overflow:hidden;`;
-
-        const fill = document.createElement("div");
-        fill.style.cssText = `height:3px;border-radius:2px;width:${clampPct(row.usedPct ?? 0)}%;background:${palette[row.tone]};`;
-
-        track.append(fill);
-        item.append(head, track);
-
-        // A percentage alone cannot be acted on: 90% used is fine with a reset an
-        // hour out and a problem with three days to go.
-        const timing = rowTiming(row, messages, locale);
-        if (timing.text) {
-          const foot = document.createElement("div");
-          foot.textContent = timing.text;
-          // Same size as the label and barely dimmed: this is the number that
-          // says whether the percentage above it matters, so it has to survive a
-          // glance at a dark sidebar rather than fade into it.
-          foot.style.cssText = `color:${timing.atRisk ? palette.danger : labelColor};font-size:11px;opacity:${timing.atRisk ? "1" : "0.85"};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;`;
-          item.append(foot);
-        }
-        if (timing.alternate) {
-          item.title = `${row.label} · ${timing.alternate}`;
-          // The meter as a whole is click-through; a row with a tooltip has to opt
-          // back in, because pointer-events:none also suppresses hover.
-          item.style.pointerEvents = "auto";
-        }
-
-        grid.append(item);
       }
 
       node.append(section);

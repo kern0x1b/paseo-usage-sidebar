@@ -12,10 +12,10 @@ import { windowShortLabel } from "../shared/usage/window-label";
 const window = (id: string, label = "") => ({ id, label });
 
 describe("windowShortLabel", () => {
-  it("codes the rolling windows and keeps the model name", () => {
+  it("codes the rolling windows without model suffix", () => {
     assert.equal(windowShortLabel(window("five_hour", "Session")), "5H");
     assert.equal(windowShortLabel(window("weekly", "Weekly")), "1W");
-    assert.equal(windowShortLabel(window("weekly_model_fable", "Weekly · Fable")), "1W Fable");
+    assert.equal(windowShortLabel(window("weekly_model_fable", "Weekly · Fable")), "1W");
     assert.equal(windowShortLabel(window("interval_x", "Interval X")), "Interval X");
   });
 });
