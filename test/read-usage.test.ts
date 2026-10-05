@@ -228,6 +228,38 @@ describe("readUsage keeps the last reading of a provider whose poll came back em
     assert.deepEqual(first.providers[0]?.windows, []);
     assert.equal(first.providers[0]?.stale, undefined);
   });
+
+  it("covers the plugin's own cards too, not only the daemon's", async () => {
+    const readUsage = await freshReader();
+    // `withRetainedReadings` runs over the merged list, so a card this plugin
+    // fetched itself (an extra Claude account, Antigravity) is held to the same
+    // rule as a daemon one — the ids are what it keys on, not where they came from.
+    const ANTIGRAVITY = {
+      providerId: "antigravity-cli",
+      displayName: "Antigravity",
+      status: "available",
+      windows: [{ id: "five_hour_gemini", label: "Session · Gemini", usedPct: 100 }],
+    };
+
+    const healthy = await readUsage({}, hostThatReturns({ providers: [ANTIGRAVITY] }).context);
+    const limited = await readUsage(
+      {},
+      hostThatReturns({
+        providers: [
+          {
+            providerId: "antigravity-cli",
+            displayName: "Antigravity",
+            status: "error",
+            error: "Antigravity quota API returned 429",
+          },
+        ],
+      }).context,
+    );
+
+    assert.deepEqual(healthy.providers[0]?.windows, ANTIGRAVITY.windows);
+    assert.deepEqual(limited.providers[0]?.windows, ANTIGRAVITY.windows);
+    assert.equal(limited.providers[0]?.stale, true);
+  });
 });
 
 describe("readUsage fault injection", () => {

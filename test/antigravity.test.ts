@@ -133,6 +133,44 @@ describe("listAntigravityUsage", () => {
     await listAntigravityUsage(fake.value);
     assert.equal(fake.requests.length, 1);
   });
+
+  it("retries a rate limited fetch on the minute, not the five minute TTL", async () => {
+    const { listAntigravityUsage } = await freshModule();
+    let nowMs = 0;
+    let calls = 0;
+    let status = 429;
+    const value = {
+      ...deps(configWith(ENABLED)).value,
+      now: () => nowMs,
+      fetch: (async () => {
+        calls += 1;
+        return new Response("{}", { status });
+      }) as unknown as typeof fetch,
+    };
+
+    await listAntigravityUsage(value);
+    nowMs += 59_000;
+    await listAntigravityUsage(value);
+    assert.equal(calls, 1, "a rate limit is not retried a second time within the minute");
+
+    // The limit clears a moment later: the next poll picks it up instead of
+    // waiting out the success TTL.
+    nowMs += 2_000;
+    status = 200;
+    await listAntigravityUsage(value);
+    assert.equal(calls, 2);
+  });
+
+  it("holds a good reading for the full TTL", async () => {
+    const { listAntigravityUsage } = await freshModule();
+    let nowMs = 0;
+    const fake = deps(configWith(ENABLED));
+    const value = { ...fake.value, now: () => nowMs };
+    await listAntigravityUsage(value);
+    nowMs += 61_000;
+    await listAntigravityUsage(value);
+    assert.equal(fake.requests.length, 1);
+  });
 });
 
 describe("scoped 5-hour labels", () => {

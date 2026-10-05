@@ -8,6 +8,7 @@ import {
   type UsageWindow,
 } from "../../shared/usage/contract";
 import { isRecord, toneFor } from "./claude-accounts";
+import { hasReading } from "../../shared/usage/preserve";
 
 /**
  * Antigravity runs in Paseo through the `antigravity-cli` plugin, which reports no
@@ -226,10 +227,19 @@ async function fetchUsage(deps: AntigravityDeps): Promise<ProviderUsage> {
 }
 
 let cached: {
-  fetchedAtMs: number;
+  /** When this entry stops answering, in `deps.now()` terms. */
+  expiresAtMs: number;
   usage: Promise<ProviderUsage>;
   nextResetMs: number;
 } | null = null;
+
+/**
+ * How long a *failed* fetch is held before it is tried again. The success TTL is
+ * five minutes because that is how long a quota window holds still; a failure is
+ * retried on the minute, so one 429 costs a minute of stale numbers rather than
+ * five — the same rule the extra Claude accounts follow.
+ */
+const FAILURE_RETRY_MS = 60_000;
 
 function earliestReset(usage: ProviderUsage): number {
   const resets = usage.windows
@@ -255,23 +265,26 @@ export async function listAntigravityUsage(
     return [];
   }
   const nowMs = deps.now();
-  if (
-    cached &&
-    nowMs - cached.fetchedAtMs < CACHE_TTL_MS &&
-    nowMs < cached.nextResetMs
-  ) {
+  if (cached && nowMs < cached.expiresAtMs && nowMs < cached.nextResetMs) {
     return [await cached.usage];
   }
   const usage = fetchUsage(deps).catch((error: unknown) =>
     unavailable(error instanceof Error ? error.message : String(error)),
   );
   const entry = {
-    fetchedAtMs: nowMs,
+    expiresAtMs: nowMs + CACHE_TTL_MS,
     usage,
     nextResetMs: Number.POSITIVE_INFINITY,
   };
   void usage.then((resolved) => {
     entry.nextResetMs = earliestReset(resolved);
+    // A failed or empty fetch is retried on the short clock instead of the
+    // success TTL. The numbers behind it are the shared path's business
+    // (server/usage/read.ts and shared/usage/preserve.ts); this only bounds how
+    // long an empty card is served before trying again.
+    if (!hasReading(resolved)) {
+      entry.expiresAtMs = deps.now() + FAILURE_RETRY_MS;
+    }
   });
   cached = entry;
   return [await usage];

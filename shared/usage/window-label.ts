@@ -8,6 +8,7 @@ import type { UsageWindow } from "./contract";
  * instead — which also means every label follows the app's language setting:
  *
  *   five_hour            → the 5-hour rolling window (labelled "Session")
+ *   session              → the same window as Codex's card spells it
  *   five_hour_<scope>    → a scoped 5-hour window, e.g. five_hour_gemini (Antigravity)
  *   weekly               → the 7-day window
  *   weekly_<model>       → a model-scoped 7-day window, e.g. weekly_model_fable
@@ -37,7 +38,8 @@ function modelSuffix(window: UsageWindow): string | null {
 }
 
 export function windowLabel(window: UsageWindow, messages: Messages): string {
-  if (window.id === "five_hour") {
+  // Codex's daemon card calls the same 5-hour rolling window "session".
+  if (window.id === "five_hour" || window.id === "session") {
     return messages.windowFiveHour;
   }
   if (window.id === "weekly") {
@@ -78,7 +80,7 @@ export function windowLabel(window: UsageWindow, messages: Messages): string {
  * the limit line, so the percentage and reset countdown have full room.
  */
 export function windowShortLabel(window: UsageWindow): string {
-  if (window.id === "five_hour" || window.id.startsWith("five_hour_")) {
+  if (window.id === "five_hour" || window.id === "session" || window.id.startsWith("five_hour_")) {
     return "5H";
   }
   if (window.id === "weekly" || window.id.startsWith("weekly_")) {

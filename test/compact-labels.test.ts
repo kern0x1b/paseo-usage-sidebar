@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { messagesFor } from "../shared/i18n/messages";
 import { formatRemainingCompact, windowTone, windowUsedPct } from "../shared/usage/format";
-import { windowShortLabel } from "../shared/usage/window-label";
+import { windowLabel, windowShortLabel } from "../shared/usage/window-label";
 
 const window = (id: string, label = "") => ({ id, label });
 
@@ -17,6 +17,23 @@ describe("windowShortLabel", () => {
     assert.equal(windowShortLabel(window("weekly", "Weekly")), "1W");
     assert.equal(windowShortLabel(window("weekly_model_fable", "Weekly · Fable")), "1W");
     assert.equal(windowShortLabel(window("interval_x", "Interval X")), "Interval X");
+  });
+
+  it("codes Codex's own name for the same rolling window", () => {
+    assert.equal(windowShortLabel(window("session", "Session")), "5H");
+  });
+});
+
+describe("windowLabel", () => {
+  it("localizes Codex's session window like Claude's five_hour one", () => {
+    const codex = window("session", "Session");
+
+    assert.equal(windowLabel(codex, messagesFor("en")), "5-hour session");
+    assert.equal(
+      windowLabel(codex, messagesFor("en")),
+      windowLabel(window("five_hour", "Session"), messagesFor("en")),
+    );
+    assert.equal(windowLabel(codex, messagesFor("ru")), "Сессия 5 ч");
   });
 });
 
