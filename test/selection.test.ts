@@ -7,7 +7,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { pinnedRows, reorderVisible, type Selection } from "../shared/selection/contract";
 import { messagesFor } from "../shared/i18n/messages";
-import type { ProviderUsage, UsageSnapshot } from "../shared/usage/contract";
+import type { ProviderUsage, UsageSnapshot, UsageWindow } from "../shared/usage/contract";
+import { windowLabel } from "../shared/usage/window-label";
 
 describe("reorderVisible", () => {
   const cases: Array<{ name: string; order: string[]; visible: string[]; expected: string[] }> = [
@@ -96,6 +97,128 @@ describe("a reorder while one provider is missing", () => {
     assert.deepEqual(
       pinnedRows(recovered, { keys: next, configured: true }, label, messages).map((row) => row.key),
       next,
+    );
+  });
+});
+
+/**
+ * The live payload as captured on 2026-10-05 from this machine, with the pin
+ * list this machine had saved the day before. Two providers did not reach the
+ * meter and neither cause was in the row resolution: Codex's row resolves and
+ * is merely hidden by the saved collapsed state, and Antigravity's four pins
+ * have no window behind them because its OAuth token had expired and the card
+ * came back `unavailable` with none.
+ */
+describe("the live 2026-10-05 payload", () => {
+  const messages = messagesFor("en");
+  const label = (_provider: ProviderUsage, window: UsageWindow) => windowLabel(window, messages);
+
+  /** Straight from Paseo's CodexQuotaProvider for a `go` plan: one 30-day primary window. */
+  const CODEX: ProviderUsage = {
+    providerId: "codex",
+    displayName: "Codex",
+    status: "available",
+    planLabel: "go",
+    windows: [
+      {
+        id: "session",
+        label: "Session",
+        usedPct: 1,
+        remainingPct: 99,
+        resetsAt: "2026-11-04T14:42:27.000Z",
+        tone: "ok",
+      },
+    ],
+    balances: [],
+    details: [],
+    error: null,
+  };
+
+  const CLAUDE: ProviderUsage = {
+    providerId: "claude",
+    displayName: "Claude",
+    status: "available",
+    planLabel: "Max",
+    windows: [
+      { id: "five_hour", label: "Session", usedPct: 12, remainingPct: 88 },
+      { id: "weekly", label: "Weekly", usedPct: 40, remainingPct: 60 },
+    ],
+    balances: [],
+    details: [],
+  };
+
+  /** What the plugin's Antigravity fetcher really answered: 401, no windows. */
+  const ANTIGRAVITY: ProviderUsage = {
+    providerId: "antigravity-cli",
+    displayName: "Antigravity",
+    status: "unavailable",
+    planLabel: null,
+    windows: [],
+    balances: [],
+    details: [],
+  };
+
+  const SAVED: Selection = {
+    keys: [
+      "claude:five_hour",
+      "claude:weekly",
+      "antigravity-cli:five_hour_gemini",
+      "antigravity-cli:weekly_gemini",
+      "codex:session",
+    ],
+    configured: true,
+    columns: 2,
+    composerPill: true,
+  };
+
+  const snapshot: UsageSnapshot = {
+    fetchedAt: "2026-10-05T15:05:00.000Z",
+    source: "sdk",
+    providers: [CLAUDE, CODEX, ANTIGRAVITY],
+  };
+
+  it("resolves Codex's single window, so its row is there to be collapsed", () => {
+    const codex = pinnedRows(snapshot, SAVED, label, messages).find((row) => row.providerId === "codex");
+
+    assert.equal(codex?.key, "codex:session");
+    assert.equal(codex?.usedPct, 1);
+    // Not coded as a 5-hour window: the plan's primary window is 30 days long.
+    assert.equal(codex?.label, "Session");
+  });
+
+  it("drops exactly the Antigravity pins, and no others", () => {
+    const resolved = pinnedRows(snapshot, SAVED, label, messages).map((row) => row.key);
+
+    assert.deepEqual(resolved, ["claude:five_hour", "claude:weekly", "codex:session"]);
+    for (const key of SAVED.keys) {
+      assert.equal(
+        resolved.includes(key) || key.startsWith("antigravity-cli:"),
+        true,
+        `${key} should still resolve`,
+      );
+    }
+  });
+
+  it("restores the Antigravity pins as soon as its card has windows again", () => {
+    const recovered: UsageSnapshot = {
+      ...snapshot,
+      providers: [
+        CLAUDE,
+        CODEX,
+        {
+          ...ANTIGRAVITY,
+          status: "available",
+          windows: [
+            { id: "five_hour_gemini", label: "Session · Gemini", usedPct: 30, remainingPct: 70 },
+            { id: "weekly_gemini", label: "Weekly · Gemini", usedPct: 44, remainingPct: 56 },
+          ],
+        },
+      ],
+    };
+
+    assert.deepEqual(
+      pinnedRows(recovered, SAVED, label, messages).map((row) => row.key),
+      ["claude:five_hour", "claude:weekly", "antigravity-cli:five_hour_gemini", "antigravity-cli:weekly_gemini", "codex:session"],
     );
   });
 });

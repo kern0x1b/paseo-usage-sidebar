@@ -27,8 +27,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A failed extra-Claude-account or Antigravity fetch is retried after a minute rather than being
   cached as an empty card for the full five minutes, so a rate limit costs a minute of stale
   numbers rather than five.
-- Codex's own name for the 5-hour rolling window (`session`) is now labelled like Claude's
-  `five_hour` one, so the meter shows `5H` for both instead of "Session".
 
 ## [1.1.1] - 2026-09-23
 
