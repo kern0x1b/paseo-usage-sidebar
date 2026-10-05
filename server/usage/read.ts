@@ -1,5 +1,10 @@
 import type { PluginHandlerContext } from "@getpaseo/plugin/server";
-import { UsageSnapshotSchema, type UsageSnapshot } from "../../shared/usage/contract";
+import {
+  ProviderUsageSchema,
+  UsageSnapshotSchema,
+  type ProviderUsage,
+  type UsageSnapshot,
+} from "../../shared/usage/contract";
 import { listAntigravityUsage } from "./antigravity";
 import { listClaudeAccountUsage, withClaudeAccounts } from "./claude-accounts";
 import {
@@ -9,6 +14,7 @@ import {
   judgeLinkFailure,
   type LinkFailureState,
 } from "../../shared/usage/errors";
+import { hasReading, retainLastGood } from "../../shared/usage/preserve";
 
 /**
  * Paseo 0.8 exposes provider usage through the plugin SDK, and the manifest
@@ -23,17 +29,77 @@ import {
  */
 
 /**
- * The daemon's payload is validated rather than trusted: a provider that reports
- * a window shape this plugin does not model should degrade to a missing field,
- * not crash the surface.
+ * The daemon's payload is validated rather than trusted, one provider at a time:
+ * a provider that reports a window shape this plugin does not model should
+ * degrade to a missing field, not take the other providers' cards down with it.
+ * A card that cannot be parsed at all is dropped rather than guessed at.
  */
 function normalize(payload: unknown): UsageSnapshot {
   const raw = (payload ?? {}) as { fetchedAt?: unknown; providers?: unknown };
+  const providers: ProviderUsage[] = [];
+  for (const entry of Array.isArray(raw.providers) ? raw.providers : []) {
+    const parsed = ProviderUsageSchema.safeParse(entry);
+    if (parsed.success) {
+      providers.push(parsed.data);
+      continue;
+    }
+    const providerId =
+      typeof (entry as { providerId?: unknown } | null)?.providerId === "string"
+        ? (entry as { providerId: string }).providerId
+        : "(unnamed)";
+    reportDropped(providerId, parsed.error);
+  }
   return UsageSnapshotSchema.parse({
     fetchedAt: typeof raw.fetchedAt === "string" ? raw.fetchedAt : null,
     source: "sdk",
-    providers: Array.isArray(raw.providers) ? raw.providers : [],
+    providers,
   });
+}
+
+/** Provider ids whose card was dropped, so the warning is one line per provider. */
+const droppedProviders = new Set<string>();
+
+function reportDropped(providerId: string, error: unknown): void {
+  if (droppedProviders.has(providerId)) {
+    return;
+  }
+  droppedProviders.add(providerId);
+  console.error(
+    `usage-sidebar: dropping an unreadable usage card for "${providerId}" (${errorMessage(error)}). ` +
+      "Every other provider is still shown.",
+  );
+}
+
+/**
+ * The last card that carried numbers, per provider. Kept per plugin process for
+ * the same reason the link-failure state is: a poll has to be able to see what
+ * the poll before it saw.
+ */
+const lastReadings = new Map<string, ProviderUsage>();
+
+/**
+ * Puts the last known numbers back under a poll that brought none.
+ *
+ * A rate limit, a timeout or a token the CLI has not refreshed yet arrives as a
+ * *successful* snapshot in which one provider has `windows: []` and a status of
+ * `error`/`unavailable`, because the daemon answers each provider's failure that
+ * way and caches it. Taken at face value that empties the card and drops the
+ * provider's rows out of the sidebar meter, and nothing marks the difference
+ * between "used no quota" and "could not be read". Remembering the last reading
+ * turns the same poll into the numbers plus a stale marker.
+ */
+function withRetainedReadings(providers: ProviderUsage[]): ProviderUsage[] {
+  for (const provider of providers) {
+    // Remembered from the poll, not from the merge below: what is worth keeping
+    // is a card that read numbers, and a card rebuilt from a remembered one is
+    // not a fresh reading of anything.
+    if (hasReading(provider)) {
+      lastReadings.set(provider.providerId, provider);
+    }
+  }
+  return providers.map((provider) =>
+    retainLastGood(provider, lastReadings.get(provider.providerId)),
+  );
 }
 
 /**
@@ -102,11 +168,11 @@ export async function readUsage(
     // this session ending.
     linkFailure = INITIAL_LINK_FAILURE_STATE;
     const daemonProviderIds = new Set(snapshot.providers.map((provider) => provider.providerId));
-    const providers = [
+    const providers = withRetainedReadings([
       ...withClaudeAccounts(snapshot.providers, await claudeAccounts),
       // A card of the daemon's own for Antigravity, should it ever report one, wins.
       ...(await antigravity).filter((provider) => !daemonProviderIds.has(provider.providerId)),
-    ];
+    ]);
     return {
       ...snapshot,
       providers,

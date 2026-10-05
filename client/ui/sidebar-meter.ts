@@ -195,7 +195,7 @@ function readAppearance(): Appearance | null {
 }
 
 type MeterRow = { label: string; usedPct: number | null; tone: UsageTone; window: UsageWindow };
-type MeterGroup = { providerId: string; provider: string; rows: MeterRow[] };
+type MeterGroup = { providerId: string; provider: string; rows: MeterRow[]; stale: boolean };
 
 type RowTiming = { text: string | null; atRisk: boolean; alternate: string | null };
 
@@ -243,8 +243,15 @@ function familyOf(window: UsageWindow, messages: Messages): string | null {
  * Group pinned rows by provider, keeping the order Paseo reports. The provider
  * name is always shown: a bare "Weekly" is ambiguous as soon as a second
  * provider reports usage.
+ *
+ * A provider whose latest poll brought no numbers keeps the rows its last good
+ * poll reported, so the meter stays readable through a rate limit; the group is
+ * marked stale so the percentages can be read as "last known" rather than live.
  */
 function toGroups(snapshot: UsageSnapshot, selection: Selection, messages: Messages): MeterGroup[] {
+  const staleProviderIds = new Set(
+    snapshot.providers.filter((provider) => provider.stale === true).map((provider) => provider.providerId),
+  );
   const groups: MeterGroup[] = [];
   const rows = pinnedRows(snapshot, selection, (_provider, window) => windowLabel(window, messages), messages);
   for (const row of rows) {
@@ -258,7 +265,12 @@ function toGroups(snapshot: UsageSnapshot, selection: Selection, messages: Messa
     if (last && last.providerId === row.providerId) {
       last.rows.push(entry);
     } else {
-      groups.push({ providerId: row.providerId, provider: row.providerName, rows: [entry] });
+groups.push({
+        providerId: row.providerId,
+        provider: row.providerName,
+        rows: [entry],
+        stale: staleProviderIds.has(row.providerId),
+      });
     }
   }
   return groups;
@@ -338,7 +350,10 @@ export function startSidebarMeter(client: PluginClientContext): PluginCleanup {
       const section = document.createElement("div");
       section.style.cssText = "display:flex;flex-direction:column;gap:6px;";
 
-      const isCollapsed = Boolean(selection.collapsedProviders?.includes(group.providerId));
+const isCollapsed = Boolean(selection.collapsedProviders?.includes(group.providerId));
+      // The stale marker rides the provider line, not the rows: it is a property
+      // of the provider's last poll, and one flag covers every row beneath it.
+      const providerText = group.stale ? `${group.provider} · ${messages.stale}` : group.provider;
 
       const providerHeader = document.createElement("div");
       providerHeader.style.cssText = [
@@ -359,8 +374,8 @@ export function startSidebarMeter(client: PluginClientContext): PluginCleanup {
       ].join(";");
 
       providerHeader.title = isCollapsed
-        ? `${messages.expand} ${group.provider}`
-        : `${messages.collapse} ${group.provider}`;
+        ? `${messages.expand} ${providerText}`
+        : `${messages.collapse} ${providerText}`;
 
       providerHeader.addEventListener("mouseenter", () => {
         providerHeader.style.opacity = "1";
@@ -370,7 +385,7 @@ export function startSidebarMeter(client: PluginClientContext): PluginCleanup {
       });
 
       const titleSpan = document.createElement("span");
-      titleSpan.textContent = group.provider;
+      titleSpan.textContent = providerText;
       titleSpan.style.cssText =
         "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;pointer-events:none;";
       providerHeader.append(titleSpan);

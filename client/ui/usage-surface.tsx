@@ -1119,7 +1119,10 @@ export function UsageSurface({ theme, layout }: PluginSurfaceProps) {
                 {index > 0 ? <View style={styles.divider} /> : null}
                 <ProviderBlock
                   provider={provider}
-                  stale={failure.showingStale}
+                  // Either the whole snapshot stopped refreshing, or this one
+                  // provider's poll did — in which case the numbers below it are
+                  // the last ones read rather than empty ones.
+                  stale={failure.showingStale || provider.stale === true}
                   theme={theme}
                   styles={styles}
                   locale={locale}
@@ -1167,7 +1170,7 @@ export function AccountUsagePopover({
       {provider ? (
         <ProviderBlock
           provider={provider}
-          stale={false}
+          stale={provider.stale === true}
           theme={theme}
           styles={styles}
           locale={locale}

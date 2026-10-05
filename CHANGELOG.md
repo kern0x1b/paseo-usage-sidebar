@@ -16,6 +16,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Hiding the Plan usage entry in Paseo's sidebar settings no longer hides the meter: it moves under
   the lowest entry still shown
+- A provider that drops out on a transient failure (a 429, a timeout, a token the CLI has not
+  refreshed yet) no longer vanishes from the plugin. The daemon reports such a poll as a
+  *successful* snapshot in which that one provider has no windows, so nothing treated it as an
+  error: the card emptied, the provider's rows left the sidebar meter, and it came back minutes
+  later with no explanation. The last numbers read are now kept on screen and marked **Not
+  updating**, with the poll's own status and error saying why they stopped moving.
+- One unreadable provider card is dropped with a warning instead of taking every other provider's
+  card down with it.
+- A failed extra-Claude-account fetch is retried after a minute rather than being cached as an
+  empty card for the full five minutes, so a rate limit costs a minute of stale numbers rather
+  than five.
 
 ## [1.1.1] - 2026-09-23
 

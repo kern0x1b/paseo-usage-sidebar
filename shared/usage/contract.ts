@@ -49,6 +49,14 @@ export const ProviderUsageSchema = z.object({
   balances: z.array(UsageBalanceSchema).default([]),
   details: z.array(UsageDetailSchema).default([]),
   error: z.string().nullable().optional(),
+  /**
+   * The windows and balances on this card are the last ones that were actually
+   * read, not the ones the latest poll produced — the poll failed, was rate
+   * limited, or answered in a shape this plugin does not model. Set by
+   * `shared/usage/preserve.ts`; never sent by the daemon, which does not keep a
+   * previous reading of its own.
+   */
+  stale: z.boolean().optional(),
 });
 
 /**
