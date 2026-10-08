@@ -1,33 +1,42 @@
 import type { PluginCleanup } from "@getpaseo/plugin";
-import type { PluginClientContext } from "@getpaseo/plugin/client";
+import type { PluginClientContext, PluginSidebarItemProps } from "@getpaseo/plugin/client";
+import { SidebarRow } from "@getpaseo/plugin/client/ui";
 import { subscribeLocale } from "./client/i18n/locale";
 import { startComposerPills } from "./client/ui/composer-pills";
-import { startSidebarMeter } from "./client/ui/sidebar-meter";
+import { SidebarMeter } from "./client/ui/sidebar-meter";
 import { sidebarTitle } from "./client/ui/sidebar-title";
 import { UsageSurface } from "./client/ui/usage-surface";
 
-const SURFACE_ID = "usage";
+const SCREEN_ID = "usage";
+
+function UsageRow({ currentScreen, openScreen }: PluginSidebarItemProps) {
+  return (
+    <SidebarRow
+      icon="Gauge"
+      active={currentScreen?.screenId === SCREEN_ID}
+      onPress={() => openScreen({ screenId: SCREEN_ID })}
+    />
+  );
+}
 
 /**
  * The host registrations that carry a *string* label rather than a component.
  *
- * Everything else in this plugin re-renders or repaints from the live locale, but
- * these hand Paseo a fixed string, so the only way to change the language they
- * show is to withdraw the registration and make it again.
+ * Everything else in this plugin re-renders from the live locale, but these hand
+ * Paseo a fixed string, so the only way to change the language they show is to
+ * withdraw the registration and make it again.
  */
 function registerLabels(client: PluginClientContext): PluginCleanup {
   const title = sidebarTitle();
   const removers = [
-    client.addSidebarItem({
-      id: "usage",
-      title,
-      icon: "Gauge",
-      surface: SURFACE_ID,
-    }),
-    // The same panel under Settings: set the pins up once, then the sidebar entry can be
-    // hidden in Settings → Appearance → Sidebar and the meter stays.
+    // Two separate items so each can be moved or hidden on its own in
+    // Settings → Sidebar: hide the row and the meter stays, and vice versa.
+    client.addSidebarHeaderItem({ id: "usage", title, Component: UsageRow }),
+    client.addSidebarHeaderItem({ id: "usage-meter", title: `${title} · meter`, Component: SidebarMeter }),
+    client.addScreen({ id: SCREEN_ID, title, Component: UsageSurface }),
+    // The same panel under Settings: set the pins up once, then the sidebar row can be hidden.
     client.addSettingsScreen({
-      id: SURFACE_ID,
+      id: SCREEN_ID,
       title,
       icon: "Gauge",
       Component: UsageSurface,
@@ -40,8 +49,8 @@ function registerLabels(client: PluginClientContext): PluginCleanup {
       keywords: ["usage", "quota", "plan", "limit", "tokens"],
       icon: "Gauge",
       context: "global",
-      onSelect: (context) => {
-        context.openSurface(SURFACE_ID);
+      onSelect: ({ openScreen }) => {
+        openScreen({ screenId: SCREEN_ID });
       },
     }),
   ];
@@ -53,36 +62,24 @@ function registerLabels(client: PluginClientContext): PluginCleanup {
 }
 
 /**
- * Client entry: the surface, its sidebar row, its settings screen, the Command
- * Center shortcut, the sidebar meter, and the composer pills for extra Claude accounts.
- *
- * The meter used to be registered through `plugin.addClientSide(startSidebarMeter)`.
- * 0.8 drops that wrapper because this entry *is* the client callback — it already
- * receives a `PluginClientContext` and returns a cleanup — so the meter is
- * started inline and its teardown folded into the returned cleanup.
+ * Client entry: the screen, its sidebar row, the usage meter, its settings
+ * screen, the Command Center shortcut, and the composer pills for extra Claude accounts.
  */
 export default function contribute(client: PluginClientContext): PluginCleanup {
-  const removeSurface = client.addSurface(SURFACE_ID, UsageSurface);
   let removeLabels = registerLabels(client);
 
-  // Only fires on an actual change of resolved locale, so the re-registration —
-  // the one thing here that visibly reshuffles host state — costs nothing while
-  // the language is left alone.
+  // Only fires on an actual change of resolved locale, so the re-registration
+  // costs nothing while the language is left alone.
   const stopWatchingLocale = subscribeLocale(() => {
     removeLabels();
     removeLabels = registerLabels(client);
   });
 
-  const stopMeter = startSidebarMeter(client);
   const stopPills = startComposerPills(client);
 
-  // The removers are idempotent, so running them here is safe even though Paseo
-  // also drops outstanding registrations after this cleanup returns.
   return () => {
     stopWatchingLocale();
-    stopMeter();
     stopPills();
     removeLabels();
-    removeSurface();
   };
 }
